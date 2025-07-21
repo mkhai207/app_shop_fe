@@ -50,8 +50,8 @@ const LoginPage: NextPage<TProps> = () => {
   })
 
   const defaultValues: TDefaultValues = {
-    email: '',
-    password: ''
+    email: 'lkhai4618@gmail.com',
+    password: '123123'
   }
 
   const {

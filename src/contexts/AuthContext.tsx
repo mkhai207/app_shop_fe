@@ -13,6 +13,9 @@ import authConfig from 'src/configs/auth'
 // ** Types
 import { AuthValuesType, LoginParams, ErrCallbackType, UserDataType } from './types'
 import { loginAuth } from 'src/services/auth'
+import { CONFIG_API } from 'src/configs/api'
+import { clearLocalUserData, setLocalUserData } from 'src/helpers/storage'
+import { clear } from 'console'
 
 // ** Defaults
 const defaultProvider: AuthValuesType = {
@@ -44,22 +47,20 @@ const AuthProvider = ({ children }: Props) => {
       if (storedToken) {
         setLoading(true)
         await axios
-          .get(authConfig.meEndpoint, {
+          .get(CONFIG_API.AUTH.AUTH_ME, {
             headers: {
-              Authorization: storedToken
+              Authorization: `Bearer ${storedToken}`
             }
           })
           .then(async response => {
             setLoading(false)
-            setUser({ ...response.data.userData })
+            setUser({ ...response.data.data })
           })
           .catch(() => {
-            localStorage.removeItem('userData')
-            localStorage.removeItem('refreshToken')
-            localStorage.removeItem('accessToken')
+            clearLocalUserData()
             setUser(null)
             setLoading(false)
-            if (authConfig.onTokenExpiration === 'logout' && !router.pathname.includes('login')) {
+            if (!router.pathname.includes('login')) {
               router.replace('/login')
             }
           })
@@ -75,7 +76,9 @@ const AuthProvider = ({ children }: Props) => {
   const handleLogin = (params: LoginParams, errorCallback?: ErrCallbackType) => {
     loginAuth({ email: params.email, password: params.password })
       .then(async response => {
-        params.rememberMe ? window.localStorage.setItem(authConfig.storageTokenKeyName, response.accessToken) : null
+        params.rememberMe
+          ? setLocalUserData(JSON.stringify(response.data), response.accessToken, response.refreshToken)
+          : null
         const returnUrl = router.query.returnUrl
         console.log('response: ', response)
         setUser({ ...response.data })
@@ -93,8 +96,7 @@ const AuthProvider = ({ children }: Props) => {
 
   const handleLogout = () => {
     setUser(null)
-    window.localStorage.removeItem('userData')
-    window.localStorage.removeItem(authConfig.storageTokenKeyName)
+    clearLocalUserData()
     router.push('/login')
   }
 
