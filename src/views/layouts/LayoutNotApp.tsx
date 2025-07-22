@@ -5,21 +5,18 @@ import Toolbar from '@mui/material/Toolbar'
 import Container from '@mui/material/Container'
 import { NextPage } from 'next'
 import HorizontalLayout from './HorizontalLayout'
+import { useTheme } from '@mui/material'
 
 type TProps = {
   children: React.ReactNode
 }
 
-// TODO remove, this demo shouldn't need to reset the theme.
-// const defaultTheme = createTheme()
-
-const LayoutNotApp: NextPage<TProps> = () => {
-  //   const [open, setOpen] = React.useState(false)
+const LayoutNotApp: NextPage<TProps> = ({ children }) => {
+  const theme = useTheme()
 
   return (
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
-      {/* <VerticalLayout toggleDrawer={() => {}} open={open} /> */}
       <HorizontalLayout toggleDrawer={() => {}} open={false} isHideMenu />
       <Box
         component='main'
@@ -32,7 +29,19 @@ const LayoutNotApp: NextPage<TProps> = () => {
         }}
       >
         <Toolbar />
-        <Container maxWidth='lg' sx={{ mt: 4, mb: 4 }}></Container>
+        <Container
+          maxWidth='lg'
+          sx={{
+            m: 4,
+            backgroundColor: theme.palette.background.paper,
+            width: 'calc(100vw - 32px)',
+            maxWidth: 'unset !important',
+            overflow: 'auto',
+            maxHeight: `calc(100vh - ${theme.mixins.toolbar.minHeight} - 32px)`
+          }}
+        >
+          {children}
+        </Container>
       </Box>
     </Box>
   )

@@ -1,3 +1,22 @@
 {
-  "Tài khoản": "Account"
+  "Account": "Account",
+  "my-profile": "My profile",
+  "Upload": "Upload",
+  "Full Name": "Full Name",
+  "enter_your_fullname": "Enter your full name",
+  "Email": "Email",
+  "enter_your_email": "Enter your email address",
+  "Phone": "Phone",
+  "enter_your_phone": "Enter your phone number",
+  "Birth Day": "Birth Day",
+  "enter_your_birthday": "Select your birth date",
+  "Gender": "Gender",
+  "Male": "Male",
+  "Female": "Female",
+  "Other": "Other",
+  "Change": "Save Changes",
+  "profile_updated_successfully": "Profile updated successfully",
+  "please_fill_required_fields": "Please fill in all required fields",
+  "invalid_email_format": "Invalid email format",
+  "phone_number_invalid": "Invalid phone number format"
 }

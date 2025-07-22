@@ -68,6 +68,9 @@ const TextFieldStyled = styled(TextField)<TextFieldProps>(({ theme }) => {
     },
     '&.Mui-error': {
       color: theme.palette.error.main
+    },
+    '& .MuiInputLabel-shrink': {
+      transform: 'none'
     }
   }
 })
