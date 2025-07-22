@@ -10,7 +10,7 @@ import IconButton from '@mui/material/IconButton'
 import Tooltip from '@mui/material/Tooltip'
 import { useAuth } from 'src/hooks/useAuth'
 import Image from 'next/image'
-import IconifyIcon from '../Icon'
+import IconifyIcon from 'src/components/Icon'
 
 type TProps = {}
 
