@@ -9,6 +9,7 @@ import CustomTextField from 'src/components/text-field'
 import { useAuth } from 'src/hooks/useAuth'
 import { EMAIL_REG } from 'src/configs/regex'
 import WrapperFileUpload from 'src/components/wrapper-file-upload'
+import { useEffect } from 'react'
 
 type TProps = {}
 
@@ -47,6 +48,7 @@ const MyProfilePage: NextPage<TProps> = () => {
   const {
     handleSubmit,
     control,
+    reset,
     formState: { errors }
   } = useForm({
     defaultValues,
@@ -54,33 +56,20 @@ const MyProfilePage: NextPage<TProps> = () => {
     resolver: yupResolver(schema)
   })
 
-  //   const onSubmit = (data: {
-  //     fullname: string
-  //     email: string
-  //     phone: string
-  //     avatar: string
-  //     birthDay: string
-  //     gender: string
-  //   }) => {
-  //     console.log('data: ', { data })
-  //   }
-  const onSubmit: SubmitHandler<TDefaultValues> = data => {
-    const formData = new FormData()
-    formData.append('fullname', data.fullname)
-    formData.append('email', data.email)
-    if (data.phone) formData.append('phone', data.phone)
-    if (data.avatar instanceof File) {
-      formData.append('avatar', data.avatar)
-    } else if (typeof data.avatar === 'string' && data.avatar) {
-      formData.append('avatar', data.avatar)
-    }
-    if (data.birthDay) formData.append('birthDay', data.birthDay)
-    if (data.gender) formData.append('gender', data.gender)
-
-    console.log('Form data:', Object.fromEntries(formData))
+  const onSubmit = (data: any) => {
+    console.log('data: ', { data })
   }
 
   const handleUploadAvatar = () => {}
+
+  useEffect(() => {
+    if (user) {
+      reset({
+        fullname: user?.fullName || '',
+        email: user?.email || ''
+      })
+    }
+  }, [user, reset])
 
   return (
     <Box
@@ -99,9 +88,9 @@ const MyProfilePage: NextPage<TProps> = () => {
             borderRadius: '16px',
             py: { xs: 4, sm: 5 },
             px: { xs: 3, sm: 4, md: 5 },
-            width: { xs: '100%', sm: 480, md: 520, lg: 560 }, // Độ rộng cố định responsive
-            maxWidth: '100%', // Đảm bảo không vượt quá viewport
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)' // Thêm shadow nhẹ
+            width: { xs: '100%', sm: 480, md: 520, lg: 560 },
+            maxWidth: '100%',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)'
           }}
         >
           <Grid container spacing={3} direction='column' alignItems='center'>
@@ -116,7 +105,7 @@ const MyProfilePage: NextPage<TProps> = () => {
                 }}
               >
                 <Avatar sx={{ width: 100, height: 100 }} src={user?.avatar || undefined}>
-                  <IconifyIcon icon='ph:user-thin' />
+                  <IconifyIcon icon='ph:user-thin' fontSize={70} />
                 </Avatar>
                 <WrapperFileUpload
                   uploadFunc={handleUploadAvatar}
@@ -167,6 +156,7 @@ const MyProfilePage: NextPage<TProps> = () => {
                 rules={{ required: true }}
                 render={({ field: { onChange, onBlur, value } }) => (
                   <CustomTextField
+                    disabled
                     required
                     fullWidth
                     label={t('Email')}
@@ -241,7 +231,6 @@ const MyProfilePage: NextPage<TProps> = () => {
                           onChange={onChange}
                           onBlur={onBlur}
                           label={t('Gender')}
-                          sx={{ height: '56px' }}
                         >
                           <MenuItem value='male'>{t('Male')}</MenuItem>
                           <MenuItem value='female'>{t('Female')}</MenuItem>

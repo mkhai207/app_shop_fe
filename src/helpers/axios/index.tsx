@@ -35,7 +35,7 @@ const AxiosInterceptor: FC<TAxiosInteceptor> = ({ children }) => {
     if (accessToken) {
       const decodedAccessToken: any = jwtDecode(accessToken)
 
-      if (decodedAccessToken.exp < Date.now() / 1000) {
+      if (decodedAccessToken.exp > Date.now() / 1000) {
         config.headers['Authorization'] = `Bearer ${accessToken}`
       } else {
         if (refreshToken) {
