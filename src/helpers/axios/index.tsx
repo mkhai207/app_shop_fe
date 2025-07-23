@@ -28,10 +28,10 @@ const handleRedirectLogin = (router: NextRouter, setUser: (data: UserDataType | 
 
 const AxiosInterceptor: FC<TAxiosInteceptor> = ({ children }) => {
   const router = useRouter()
-  const { accessToken, refreshToken } = getLocalUserData()
   const { setUser } = useAuth()
 
   instanceAxios.interceptors.request.use(async config => {
+    const { accessToken, refreshToken } = getLocalUserData()
     if (accessToken) {
       const decodedAccessToken: any = jwtDecode(accessToken)
 
@@ -56,13 +56,16 @@ const AxiosInterceptor: FC<TAxiosInteceptor> = ({ children }) => {
                 if (newAccessToken) {
                   config.headers['Authorization'] = `Bearer ${newAccessToken}`
                 } else {
+                  console.log('Non newAccessToken')
                   handleRedirectLogin(router, setUser)
                 }
               })
-              .catch(() => {
+              .catch(e => {
+                console.log('error:', e)
                 handleRedirectLogin(router, setUser)
               })
           } else {
+            console.log('RefreshToken is expired')
             handleRedirectLogin(router, setUser)
           }
         } else {
@@ -70,7 +73,10 @@ const AxiosInterceptor: FC<TAxiosInteceptor> = ({ children }) => {
         }
       }
     } else {
+      console.log('AccessToken is required')
       handleRedirectLogin(router, setUser)
+
+      return Promise.reject(new axios.Cancel('No access token'))
     }
 
     return config

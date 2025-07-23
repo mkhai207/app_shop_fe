@@ -52,7 +52,7 @@ const UserDropdown = (props: TProps) => {
           >
             <Avatar sx={{ width: 32, height: 32 }}>
               {user?.avatar ? (
-                <Image src={user?.avatar || ''} alt='avatar' style={{ width: 'auto', height: 'auto' }} />
+                <Image src={user?.avatar || ''} alt='avatar' width={80} height={80} />
               ) : (
                 <IconifyIcon icon='clarity:avatar-line' />
               )}

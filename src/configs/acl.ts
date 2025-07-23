@@ -43,8 +43,8 @@
 
 import { AbilityBuilder, Ability } from '@casl/ability'
 
-export type Subjects = string // Route hoặc tài nguyên (ví dụ: 'dashboard', 'profile')
-export type Actions = 'access' // Chỉ cần một hành động chung là 'access'
+export type Subjects = string
+export type Actions = 'access'
 
 export type AppAbility = Ability<[Actions, Subjects]> | undefined
 
@@ -61,8 +61,10 @@ const defineRulesFor = (role: string) => {
 
   if (role === 'ADMIN') {
     can('access', 'all') // Admin có quyền truy cập tất cả
-  } else if (role === 'user') {
-    can('access', ['dashboard', 'profile']) // User chỉ truy cập dashboard và profile
+  } else if (role === 'CUSTOMER') {
+    can('access', ['all']) // User chỉ truy cập dashboard và profile
+  } else {
+    can('access', ['all'])
   }
 
   return rules
