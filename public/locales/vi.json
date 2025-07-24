@@ -18,5 +18,7 @@
   "profile_updated_successfully": "Cập nhật hồ sơ thành công",
   "please_fill_required_fields": "Vui lòng điền đầy đủ các trường bắt buộc",
   "invalid_email_format": "Định dạng email không hợp lệ",
-  "phone_number_invalid": "Định dạng số điện thoại không hợp lệ"
+  "phone_number_invalid": "Định dạng số điện thoại không hợp lệ",
+  "change-password": "Đổi mật khẩu",
+  "logout": "Đăng xuất"
 }

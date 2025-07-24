@@ -14,8 +14,39 @@ import IconifyIcon from 'src/components/Icon'
 import { useTranslation } from 'react-i18next'
 import { useRouter } from 'next/router'
 import { ROUTE_CONFIG } from 'src/configs/route'
+import Typography from '@mui/material/Typography'
+import { Badge, styled } from '@mui/material'
 
 type TProps = {}
+
+const StyledBadge = styled(Badge)(({ theme }) => ({
+  '& .MuiBadge-badge': {
+    backgroundColor: '#44b700',
+    color: '#44b700',
+    boxShadow: `0 0 0 2px ${theme.palette.background.paper}`,
+    '&::after': {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      borderRadius: '50%',
+      animation: 'ripple 1.2s infinite ease-in-out',
+      border: '1px solid currentColor',
+      content: '""'
+    }
+  },
+  '@keyframes ripple': {
+    '0%': {
+      transform: 'scale(.8)',
+      opacity: 1
+    },
+    '100%': {
+      transform: 'scale(2.4)',
+      opacity: 0
+    }
+  }
+}))
 
 const UserDropdown = (props: TProps) => {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null)
@@ -50,13 +81,15 @@ const UserDropdown = (props: TProps) => {
             aria-haspopup='true'
             aria-expanded={open ? 'true' : undefined}
           >
-            <Avatar sx={{ width: 32, height: 32 }}>
-              {user?.avatar ? (
-                <Image src={user?.avatar || ''} alt='avatar' width={80} height={80} />
-              ) : (
-                <IconifyIcon icon='clarity:avatar-line' />
-              )}
-            </Avatar>
+            <StyledBadge overlap='circular' anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} variant='dot'>
+              <Avatar sx={{ width: 32, height: 32 }}>
+                {user?.avatar ? (
+                  <Image src={user?.avatar || ''} alt='avatar' width={80} height={80} />
+                ) : (
+                  <IconifyIcon icon='clarity:avatar-line' />
+                )}
+              </Avatar>
+            </StyledBadge>
           </IconButton>
         </Tooltip>
       </Box>
@@ -97,14 +130,51 @@ const UserDropdown = (props: TProps) => {
         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
       >
-        <MenuItem onClick={handleClose}>{user?.fullName}</MenuItem>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mx: 2, py: 2, px: 2 }}>
+          <StyledBadge overlap='circular' anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} variant='dot'>
+            <Avatar sx={{ width: 32, height: 32 }}>
+              {user?.avatar ? (
+                <Image
+                  src={user?.avatar || ''}
+                  alt='avatar'
+                  width={0}
+                  height={0}
+                  style={{
+                    height: '32px',
+                    width: '32px',
+                    objectFit: 'cover'
+                  }}
+                />
+              ) : (
+                <IconifyIcon icon='ph:user-thin' />
+              )}
+            </Avatar>
+          </StyledBadge>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <Typography component={'span'}>{user?.fullName}</Typography>
+            <Typography component={'span'}>{user?.role?.name}</Typography>
+          </Box>
+        </Box>
+        <Divider />
         <MenuItem onClick={handleNavigateMyProfile}>
-          <Avatar /> {t('my-profile')}
+          <Avatar>
+            <IconifyIcon icon='ph:user-thin' />
+          </Avatar>{' '}
+          {t('my-profile')}
+        </MenuItem>
+
+        <MenuItem onClick={logout}>
+          <Avatar sx={{ backgroundColor: 'transparent' }}>
+            <IconifyIcon icon='teenyicons:password-outline' />
+          </Avatar>
+          {t('change-password')}
         </MenuItem>
         <Divider />
         <MenuItem onClick={logout}>
-          <ListItemIcon>{/* <Logout fontSize='small' /> */}</ListItemIcon>
-          Logout
+          <Avatar sx={{ backgroundColor: 'transparent' }}>
+            <IconifyIcon icon='material-symbols:logout' />
+          </Avatar>
+          {t('logout')}
         </MenuItem>
       </Menu>
     </React.Fragment>

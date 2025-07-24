@@ -56,7 +56,6 @@ const AxiosInterceptor: FC<TAxiosInteceptor> = ({ children }) => {
                 if (newAccessToken) {
                   config.headers['Authorization'] = `Bearer ${newAccessToken}`
                 } else {
-                  console.log('Non newAccessToken')
                   handleRedirectLogin(router, setUser)
                 }
               })
@@ -65,7 +64,6 @@ const AxiosInterceptor: FC<TAxiosInteceptor> = ({ children }) => {
                 handleRedirectLogin(router, setUser)
               })
           } else {
-            console.log('RefreshToken is expired')
             handleRedirectLogin(router, setUser)
           }
         } else {
@@ -73,7 +71,6 @@ const AxiosInterceptor: FC<TAxiosInteceptor> = ({ children }) => {
         }
       }
     } else {
-      console.log('AccessToken is required')
       handleRedirectLogin(router, setUser)
 
       return Promise.reject(new axios.Cancel('No access token'))

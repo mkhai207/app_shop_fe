@@ -18,6 +18,7 @@ import toast from 'react-hot-toast'
 import { updateMeAuthAsync } from 'src/stores/apps/auth/action'
 import { resetInitialState } from 'src/stores/apps/auth'
 import FallbackSpinner from 'src/components/fall-back'
+import Spinner from 'src/components/spinner'
 
 type TProps = {}
 
@@ -37,7 +38,9 @@ const MyProfilePage: NextPage<TProps> = () => {
   const [loading, setLoading] = useState(false)
   const [avatar, setAvatar] = useState<string | null>(null)
   const dispatch: AppDispatch = useDispatch()
-  const { isLoading, isErrorUpdateMe, message, isSuccessUpdateMe } = useSelector((state: RootState) => state.auth)
+  const { isLoading, isErrorUpdateMe, messageUpdateMe, isSuccessUpdateMe } = useSelector(
+    (state: RootState) => state.auth
+  )
 
   const schema = yup.object({
     fullname: yup.string().required(t('Full name is required')),
@@ -84,7 +87,6 @@ const MyProfilePage: NextPage<TProps> = () => {
       .get(CONFIG_API.AUTH.AUTH_ME)
       .then(async response => {
         setLoading(false)
-        console.log('response: ', response)
         const data = response?.data?.data
         if (data) {
           data.avatar ? setAvatar(data.avatar) : setAvatar(null)
@@ -107,21 +109,21 @@ const MyProfilePage: NextPage<TProps> = () => {
   }, [])
 
   useEffect(() => {
-    if (message) {
-      console.log('message: ', message)
+    if (messageUpdateMe) {
+      console.log('message: ', messageUpdateMe)
       if (isErrorUpdateMe) {
-        toast.error(message)
+        toast.error(messageUpdateMe)
       } else {
-        toast.success(message)
+        toast.success(messageUpdateMe)
         fetchGetAuthMe()
       }
     }
     dispatch(resetInitialState())
-  }, [isLoading, isErrorUpdateMe, isSuccessUpdateMe])
+  }, [isLoading, isErrorUpdateMe, isSuccessUpdateMe, messageUpdateMe])
 
   return (
     <>
-      {isLoading || (loading && <FallbackSpinner />)}
+      {isLoading || (loading && <Spinner />)}
       <Box
         sx={{
           minHeight: '100vh',

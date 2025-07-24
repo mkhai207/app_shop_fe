@@ -18,5 +18,7 @@
   "profile_updated_successfully": "Profile updated successfully",
   "please_fill_required_fields": "Please fill in all required fields",
   "invalid_email_format": "Invalid email format",
-  "phone_number_invalid": "Invalid phone number format"
+  "phone_number_invalid": "Invalid phone number format",
+  "change-password": "Change Password",
+  "logout": "Logout"
 }
