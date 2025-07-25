@@ -69,15 +69,12 @@ const AuthProvider = ({ children }: Props) => {
   }, [])
 
   const handleLogin = (params: LoginParams, errorCallback?: ErrCallbackType) => {
-    setLoading(true)
     loginAuth({ email: params.email, password: params.password })
       .then(async response => {
-        setLoading(false)
         params.rememberMe
           ? setLocalUserData(JSON.stringify(response.data), response.accessToken, response.refreshToken)
           : null
         const returnUrl = router.query.returnUrl
-        console.log('response: ', response)
         setUser({ ...response.data })
         params.rememberMe ? window.localStorage.setItem('userData', JSON.stringify(response.data)) : null
 
@@ -87,7 +84,6 @@ const AuthProvider = ({ children }: Props) => {
       })
 
       .catch(err => {
-        setLoading(true)
         if (errorCallback) errorCallback(err)
       })
   }
@@ -95,7 +91,7 @@ const AuthProvider = ({ children }: Props) => {
   const handleLogout = () => {
     setUser(null)
     clearLocalUserData()
-    router.push('/login')
+    router.push('/')
   }
 
   const values = {

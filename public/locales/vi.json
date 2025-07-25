@@ -20,5 +20,14 @@
   "invalid_email_format": "Định dạng email không hợp lệ",
   "phone_number_invalid": "Định dạng số điện thoại không hợp lệ",
   "change-password": "Đổi mật khẩu",
-  "logout": "Đăng xuất"
+  "logout": "Đăng xuất",
+  "username-or-password-is-incorrect": "Tên đăng nhập hoặc mật khẩu không chính xác",
+  "email-is-required": "Vui lòng nhập email",
+  "password-is-required": "Vui lòng nhập password",
+  "password": "Mật khẩu",
+  "dont-have-an-account": "Bạn chưa có tài khoản?",
+  "remember-me": "Nhớ mật khẩu",
+  "forgot-password": "Quên mật khẩu?",
+  "add-to-cart": "Thêm vào giỏ hàng",
+  "buy-now": "Mua ngay"
 }

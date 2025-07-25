@@ -23,6 +23,8 @@ import Image from 'next/image'
 import LoginLight from '/public/images/login-light.png'
 import LoginDark from '/public/images/login-dark.png'
 import { useAuth } from 'src/hooks/useAuth'
+import toast from 'react-hot-toast'
+import { useTranslation } from 'react-i18next'
 
 type TProps = {}
 
@@ -38,10 +40,11 @@ const LoginPage: NextPage<TProps> = () => {
   const { login } = useAuth()
 
   const theme = useTheme()
+  const { t } = useTranslation()
 
   const schema = yup.object({
-    email: yup.string().required('Email is required').matches(EMAIL_REG, 'The field is must email type'),
-    password: yup.string().required('Password is required')
+    email: yup.string().required(t('email-is-required')).matches(EMAIL_REG, t('invalid_email_format')),
+    password: yup.string().required(t('password-is-required'))
 
     // .matches(
     //   PASSWORD_REG,
@@ -66,9 +69,12 @@ const LoginPage: NextPage<TProps> = () => {
 
   const onSubmit = (data: { email: string; password: string }) => {
     if (!Object.keys(errors)?.length) {
-      login({ ...data, rememberMe: isRemember })
+      login({ ...data, rememberMe: isRemember }, err => {
+        if (err?.response?.data?.error) {
+          toast.error(t('username-or-password-is-incorrect'))
+        }
+      })
     }
-    console.log('data: ', { data, errors })
   }
 
   return (
@@ -151,7 +157,7 @@ const LoginPage: NextPage<TProps> = () => {
                     variant='outlined'
                     required
                     fullWidth
-                    label='Password'
+                    label={t('password')}
                     type={showPassword ? 'text' : 'password'}
                     placeholder='Input password'
                     onChange={onChange}
@@ -196,16 +202,16 @@ const LoginPage: NextPage<TProps> = () => {
                     color='primary'
                   />
                 }
-                label='Remember me'
+                label={t('remember-me')}
               />
-              <Link href='#'>Forgot password?</Link>
+              <Link href='#'>{t('forgot-password')}</Link>
             </Box>
             <Button type='submit' fullWidth variant='contained' color='primary' sx={{ mt: 3, mb: 2 }}>
               Sign In
             </Button>
             <Grid container>
               <Grid item xs>
-                {"Don't have an account?"}
+                {t('dont-have-an-account')}
               </Grid>
               <Grid item>
                 <Link href='/register'>{'Sign Up'}</Link>

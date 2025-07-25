@@ -78,7 +78,7 @@ const CustomTextField = (props: TextFieldProps) => {
   const { size = 'small', InputLabelProps, variant = 'filled', ...rests } = props
 
   return (
-    <TextFieldStyled size={size} variant={variant} InputLabelProps={{ ...InputLabelProps, shrink: true }} {...rests} />
+    <TextFieldStyled size={size} variant={variant} InputLabelProps={{ ...InputLabelProps, shrink: false }} {...rests} />
   )
 }
 

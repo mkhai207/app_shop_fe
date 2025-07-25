@@ -19,6 +19,15 @@
   "please_fill_required_fields": "Please fill in all required fields",
   "invalid_email_format": "Invalid email format",
   "phone_number_invalid": "Invalid phone number format",
-  "change-password": "Change Password",
-  "logout": "Logout"
+  "change-password": "Change password",
+  "logout": "Logout",
+  "username-or-password-is-incorrect": "Username or password is incorrect",
+  "email-is-required": "Email is required",
+  "password-is-required": "Password is required",
+  "password": "Password",
+  "dont-have-an-account": "Don't have an account?",
+  "remember-me": "Remember me",
+  "forgot-password": "Forgot password?",
+  "add-to-cart": "Add to cart",
+  "buy-now": "Buy now"
 }

@@ -17,7 +17,6 @@ import { AppDispatch, RootState } from 'src/stores'
 import toast from 'react-hot-toast'
 import { updateMeAuthAsync } from 'src/stores/apps/auth/action'
 import { resetInitialState } from 'src/stores/apps/auth'
-import FallbackSpinner from 'src/components/fall-back'
 import Spinner from 'src/components/spinner'
 
 type TProps = {}
