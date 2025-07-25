@@ -8,6 +8,7 @@ import { getAllProductsPublic } from 'src/services/product'
 import { PAGE_SIZE_OPTION } from 'src/configs/gridConfig'
 import { TProduct } from 'src/types/product'
 import CustomPagination from 'src/components/custom-pagination'
+import Spinner from 'src/components/spinner'
 
 type TProps = {}
 
@@ -109,39 +110,41 @@ const HomePage: NextPage<TProps> = () => {
   }, [])
 
   return (
-    <Box
-      sx={{
-        backgroundColor: theme.palette.background.paper,
-        padding: '20px',
-        height: '100%',
-        width: '100%'
-      }}
-    >
-      <Box sx={{ height: '100%', width: '100%', mt: 4, mb: 4 }}>
-        <Grid container spacing={4} justifyContent='flex-start'>
-          {productsPublic?.data?.length > 0 ? (
-            productsPublic.data.map((item: TProduct) => (
-              <Grid item key={item.id} xs={12} sm={6} md={4} lg={3}>
-                <CardProduct item={item} />
+    <>
+      {loading && <Spinner />}
+      <Box
+        sx={{
+          backgroundColor: theme.palette.background.paper,
+          height: '100%',
+          width: '100%'
+        }}
+      >
+        <Box sx={{ height: '100%', width: '100%', mt: 4, mb: 4 }}>
+          <Grid container spacing={4} justifyContent='flex-start'>
+            {productsPublic?.data?.length > 0 ? (
+              productsPublic.data.map((item: TProduct) => (
+                <Grid item key={item.id} xs={12} sm={6} md={4} lg={3}>
+                  <CardProduct item={item} />
+                </Grid>
+              ))
+            ) : (
+              <Grid item xs={12}>
+                <Typography>Không có sản phẩm</Typography>
               </Grid>
-            ))
-          ) : (
-            <Grid item xs={12}>
-              <Typography>Không có sản phẩm</Typography>
-            </Grid>
-          )}
-        </Grid>
+            )}
+          </Grid>
+        </Box>
+        <CustomPagination
+          onChangePagination={handleOnchangePagination}
+          pageSizeOptions={PAGE_SIZE_OPTION}
+          pageSize={pageSize}
+          totalPages={productsPublic?.totalPages}
+          page={page}
+          rowLength={10}
+          isHideShowed
+        />
       </Box>
-      <CustomPagination
-        onChangePagination={handleOnchangePagination}
-        pageSizeOptions={PAGE_SIZE_OPTION}
-        pageSize={pageSize}
-        totalPages={productsPublic?.totalPages}
-        page={page}
-        rowLength={10}
-        isHideShowed
-      />
-    </Box>
+    </>
   )
 }
 

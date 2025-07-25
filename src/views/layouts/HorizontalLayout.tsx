@@ -14,6 +14,7 @@ import { useRouter } from 'next/router'
 import { ROUTE_CONFIG } from 'src/configs/route'
 import logo from '/public/images/fashion-shop-logo.jpg'
 import Image from 'next/image'
+import CartProduct from './components/cart-product'
 
 const drawerWidth: number = 240
 
@@ -101,6 +102,7 @@ const HorizontalLayout: NextPage<TProps> = ({ open, toggleDrawer, isHideMenu }) 
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <LanguageDropDown />
           <ModeToggle />
+          <CartProduct />
           {user ? (
             <UserDropdown />
           ) : (

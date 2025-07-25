@@ -1,13 +1,15 @@
 import { Box, Button, Card, CardContent, CardMedia, styled, Typography, useTheme } from '@mui/material'
+import { useRouter } from 'next/router'
 import { useTranslation } from 'react-i18next'
 import IconifyIcon from 'src/components/Icon'
+import { ROUTE_CONFIG } from 'src/configs/route'
 import { TProduct } from 'src/types/product'
 
 const StyledCard = styled(Card)(({}) => ({
   height: '100%',
   display: 'flex',
   flexDirection: 'column',
-  borderRadius: 2,
+  borderRadius: 10,
   boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
   transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out',
   '&:hover': {
@@ -24,8 +26,11 @@ const CardProduct = (props: TCardProduct) => {
   const item = props?.item
   const { t } = useTranslation()
   const theme = useTheme()
+  const router = useRouter()
 
-  console.log('itemProduct', item)
+  const handleNavigateDetailProduct = (id: string) => {
+    router.push(`${ROUTE_CONFIG.PRODUCT}/${id}`)
+  }
 
   return (
     <StyledCard>
@@ -56,6 +61,9 @@ const CardProduct = (props: TCardProduct) => {
       >
         <Box>
           <Typography
+            onClick={() => {
+              handleNavigateDetailProduct(item?.id)
+            }}
             variant='h6'
             sx={{
               color: theme.palette.primary.main,
@@ -70,7 +78,8 @@ const CardProduct = (props: TCardProduct) => {
               display: '-webkit-box',
               WebkitLineClamp: 2,
               WebkitBoxOrient: 'vertical',
-              minHeight: '2.4em'
+              minHeight: '2.4em',
+              cursor: 'pointer'
             }}
           >
             {item?.name || 'Tên sản phẩm'}

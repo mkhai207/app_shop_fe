@@ -11,5 +11,8 @@ export const CONFIG_API = {
       GET_ALL_PRODUCTS_PUBLIC: `${BASE_URL}/products/get-products`,
       GET_DETAIL_PRODUCT_PUBLIC: `${BASE_URL}/products/get-product`
     }
+  },
+  CART: {
+    INDEX: `${BASE_URL}/carts`
   }
 }
