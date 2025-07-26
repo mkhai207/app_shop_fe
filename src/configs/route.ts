@@ -5,5 +5,6 @@ export const ROUTE_CONFIG = {
   PRODUCT: '/product',
   CART: '/cart',
   CHECKOUT: '/checkout',
-  ORDER_SUCCESS: 'order/order-success'
+  ORDER_SUCCESS: 'order/order-success',
+  ORDER_HISTORY: 'order/order-history'
 }

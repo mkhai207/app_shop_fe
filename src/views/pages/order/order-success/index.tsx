@@ -1,10 +1,16 @@
 import CheckIcon from '@mui/icons-material/Check'
 import { Avatar, Box, Button, Paper, Typography } from '@mui/material'
+import { useRouter } from 'next/router'
 import { useTranslation } from 'react-i18next'
+import { ROUTE_CONFIG } from 'src/configs/route'
 
 const OrderSuccessPage = () => {
   const { t } = useTranslation()
-  const handleNavigateOrders = () => {}
+  const router = useRouter()
+
+  const handleNavigateOrders = () => {
+    router.push(`/${ROUTE_CONFIG.ORDER_HISTORY}`)
+  }
 
   return (
     <Box
