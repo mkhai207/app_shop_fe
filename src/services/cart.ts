@@ -31,3 +31,13 @@ export const updateCartItem = async (id: string, data: TUpdateCartItem) => {
     return error
   }
 }
+
+export const deleteCartItem = async (id: string) => {
+  try {
+    const res = await instanceAxios.delete(`${CONFIG_API.CART.INDEX}/delete/${id}`)
+
+    return res.data
+  } catch (error) {
+    return error
+  }
+}

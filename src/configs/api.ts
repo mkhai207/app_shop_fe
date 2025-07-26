@@ -14,5 +14,8 @@ export const CONFIG_API = {
   },
   CART: {
     INDEX: `${BASE_URL}/carts`
+  },
+  ORDER: {
+    INDEX: `${BASE_URL}/orders`
   }
 }

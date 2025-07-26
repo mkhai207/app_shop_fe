@@ -30,5 +30,12 @@
   "forgot-password": "Quên mật khẩu?",
   "add-to-cart": "Thêm vào giỏ hàng",
   "buy-now": "Mua ngay",
-  "cart": "Giỏ hàng"
+  "cart": "Giỏ hàng",
+  "payment-method-required": "Vui lòng chọn phương thức thanh toán",
+  "shipping-address-required": "Vui lòng nhập địa chỉ giao hàng",
+  "full-name-required": "Vui lòng nhập họ và tên",
+  "phone-number-required": "Vui lòng nhập số điện thoại",
+  "delivery-info": "Thông tin giao hàng",
+  "status-required": "Vui lòng chọn trạng thái đơn hàng",
+  "order-details-required": "Vui lòng chọn sản phẩm"
 }

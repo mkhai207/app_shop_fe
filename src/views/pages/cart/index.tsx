@@ -19,7 +19,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import Spinner from 'src/components/spinner'
 import { ROUTE_CONFIG } from 'src/configs/route'
 import { AppDispatch, RootState } from 'src/stores'
-import { getCartItemsAsync, updateCartItemAsync } from 'src/stores/apps/cart/action'
+import { deleteCartItemAsync, getCartItemsAsync, updateCartItemAsync } from 'src/stores/apps/cart/action'
 
 type TProps = {}
 
@@ -43,12 +43,21 @@ const CartPage: NextPage<TProps> = () => {
     }
   }
 
+  const handleDeleteCartItem = (itemId: string) => {
+    console.log('itemId', itemId)
+    dispatch(deleteCartItemAsync(itemId))
+  }
+
   const handleCalculateTotalCart = () => {
     return items.reduce((acc, item) => acc + item.variant.product.price * item.quantity, 0)
   }
 
   const handleNavigateHome = () => {
     router.push(ROUTE_CONFIG.HOME)
+  }
+
+  const handleNavigateCheckout = () => {
+    router.push(ROUTE_CONFIG.CHECKOUT)
   }
 
   const fetchGetMyCart = () => {
@@ -66,7 +75,7 @@ const CartPage: NextPage<TProps> = () => {
     }
 
     // dispatch(resetCart())
-  }, [items, isSuccess, isError, message])
+  }, [items, isSuccess, isLoading, isError, message])
 
   useEffect(() => {
     fetchGetMyCart()
@@ -192,6 +201,7 @@ const CartPage: NextPage<TProps> = () => {
                                 textTransform: 'none',
                                 '&:hover': { color: 'error.main' }
                               }}
+                              onClick={() => handleDeleteCartItem(item.id)}
                             >
                               Xóa
                             </Button>
@@ -264,6 +274,7 @@ const CartPage: NextPage<TProps> = () => {
                     backgroundColor: 'grey.800'
                   }
                 }}
+                onClick={handleNavigateCheckout}
               >
                 THANH TOÁN NGAY
               </Button>

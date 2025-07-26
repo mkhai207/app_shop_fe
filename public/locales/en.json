@@ -30,5 +30,12 @@
   "forgot-password": "Forgot password?",
   "add-to-cart": "Add to cart",
   "buy-now": "Buy now",
-  "cart": "Cart"
+  "cart": "Cart",
+  "payment-method-required": "Payment method is required",
+  "shipping-address-required": "Shipping address is required",
+  "full-name-required": "Full name is required",
+  "phone-number-required": "Phone number is required",
+  "delivery-info": "Delivery info",
+  "status-required": "Please select a status",
+  "order-details-required": "Please select products"
 }

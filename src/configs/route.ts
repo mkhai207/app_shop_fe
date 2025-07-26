@@ -3,5 +3,7 @@ export const ROUTE_CONFIG = {
   MY_PROFILE: '/my-profile',
   LOGIN: '/login',
   PRODUCT: '/product',
-  CART: '/cart'
+  CART: '/cart',
+  CHECKOUT: '/checkout',
+  ORDER_SUCCESS: 'order/order-success'
 }
