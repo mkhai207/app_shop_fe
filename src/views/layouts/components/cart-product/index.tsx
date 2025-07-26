@@ -6,30 +6,27 @@ import IconButton from '@mui/material/IconButton'
 import Tooltip from '@mui/material/Tooltip'
 import * as React from 'react'
 import { useTranslation } from 'react-i18next'
+import { useRouter } from 'next/router'
+import { ROUTE_CONFIG } from 'src/configs/route'
+import { RootState } from 'src/stores'
+import { useSelector } from 'react-redux'
 
-type TProps = {}
-
-const CartProduct = (props: TProps) => {
-  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null)
-
-  const open = Boolean(anchorEl)
-
+const CartProduct = () => {
   const { t } = useTranslation()
+  const router = useRouter()
 
-  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget)
-  }
+  const { items } = useSelector((state: RootState) => state.cart)
 
-  const handleClose = () => {
-    setAnchorEl(null)
+  const handleNavigateCart = () => {
+    router.push(ROUTE_CONFIG.CART)
   }
 
   return (
     <React.Fragment>
       <Box sx={{ display: 'flex', alignItems: 'center', textAlign: 'center' }}>
         <Tooltip title={t('cart')}>
-          <IconButton onClick={handleClick} size='small' sx={{ ml: 2 }} color='inherit'>
-            <Badge color='primary' badgeContent={2}>
+          <IconButton onClick={handleNavigateCart} size='small' sx={{ ml: 2 }} color='inherit'>
+            <Badge color='primary' badgeContent={items.length || 0}>
               <Icon icon='material-symbols:shopping-cart' />
             </Badge>
           </IconButton>

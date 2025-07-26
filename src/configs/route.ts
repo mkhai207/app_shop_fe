@@ -1,5 +1,7 @@
 export const ROUTE_CONFIG = {
-  MY_PROFILE: 'my-profile',
-  LOGIN: 'login',
-  PRODUCT: 'product'
+  HOME: '/',
+  MY_PROFILE: '/my-profile',
+  LOGIN: '/login',
+  PRODUCT: '/product',
+  CART: '/cart'
 }

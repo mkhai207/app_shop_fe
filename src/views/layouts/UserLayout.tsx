@@ -14,7 +14,7 @@ type TProps = {
 // TODO remove, this demo shouldn't need to reset the theme.
 // const defaultTheme = createTheme()
 
-const UserLayout: NextPage<TProps> = () => {
+const UserLayout: NextPage<TProps> = ({ children }) => {
   const [open, setOpen] = React.useState(true)
   const toggleDrawer = () => {
     setOpen(!open)
@@ -36,7 +36,9 @@ const UserLayout: NextPage<TProps> = () => {
         }}
       >
         <Toolbar />
-        <Container maxWidth='lg' sx={{ mt: 4, mb: 4 }}></Container>
+        <Container maxWidth='lg' sx={{ mt: 4, mb: 4 }}>
+          {children}
+        </Container>
       </Box>
     </Box>
   )

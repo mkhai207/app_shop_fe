@@ -220,7 +220,7 @@ const DetailProductPage: NextPage<TProps> = () => {
               {/* Color Selection */}
               <Box mb={3}>
                 <Typography variant='body1' fontWeight='bold' gutterBottom>
-                  Màu sắc:
+                  Màu sắc: {productDetail?.colors.find(color => color.id === selectedColor)?.name}
                 </Typography>
                 <Box display='flex' gap={1}>
                   {productDetail?.colors.map(color => (

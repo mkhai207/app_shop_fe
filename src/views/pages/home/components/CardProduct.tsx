@@ -105,7 +105,7 @@ const CardProduct = (props: TCardProduct) => {
                 fontSize: '16px'
               }}
             >
-              {item?.price ? `${item.price.toLocaleString()} VND` : '0 VND'}
+              {item?.price ? `${item.price.toLocaleString()} VND` : '0 VNĐ'}
             </Typography>
           </Box>
         </Box>

@@ -1,10 +1,11 @@
 import { createAsyncThunk } from '@reduxjs/toolkit'
-import { addToCart } from 'src/services/cart'
+import { addToCart, getCartItems, updateCartItem } from 'src/services/cart'
+import { TUpdateCartItem } from 'src/types/cart'
 
 export const serviceName = 'cart'
 
 // ** Add to cart
-export const addToCartAsync = createAsyncThunk('auth/addToCart', async (data: any) => {
+export const addToCartAsync = createAsyncThunk('cart/addToCart', async (data: any) => {
   const response = await addToCart(data)
   console.log('addToCart', response)
 
@@ -18,3 +19,38 @@ export const addToCartAsync = createAsyncThunk('auth/addToCart', async (data: an
     error: response?.response.data.error
   }
 })
+
+// ** get cart items
+export const getCartItemsAsync = createAsyncThunk('cart/getCartItems', async () => {
+  const response = await getCartItems()
+  console.log('getCartItemsAsync', response)
+
+  if (response?.data) {
+    return response
+  }
+
+  return {
+    data: null,
+    message: response?.response.data.message
+  }
+})
+
+// ** update cart item
+export const updateCartItemAsync = createAsyncThunk(
+  'cart/updateCartItem',
+  async ({ itemId, data }: { itemId: string; data: TUpdateCartItem }, { dispatch }) => {
+    const response = await updateCartItem(itemId, data)
+
+    if (response?.status === 'success' && response?.data) {
+      dispatch(getCartItemsAsync())
+
+      return response
+    }
+
+    return {
+      data: null,
+      message: response?.response.data.message,
+      error: response?.response.data.error
+    }
+  }
+)

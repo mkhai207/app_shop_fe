@@ -6,6 +6,7 @@ import Container from '@mui/material/Container'
 import { NextPage } from 'next'
 import HorizontalLayout from './HorizontalLayout'
 import { useTheme } from '@mui/material'
+import FooterLayout from './FooterLayout'
 
 type TProps = {
   children: React.ReactNode
@@ -42,6 +43,7 @@ const LayoutNotApp: NextPage<TProps> = ({ children }) => {
         >
           {children}
         </Container>
+        <FooterLayout />
       </Box>
     </Box>
   )

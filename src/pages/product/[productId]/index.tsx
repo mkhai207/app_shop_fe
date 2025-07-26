@@ -15,6 +15,4 @@ const DetailProduct: NextPage<TProps> = () => {
 export default DetailProduct
 
 DetailProduct.getLayout = (page: React.ReactNode) => <LayoutNotApp>{page}</LayoutNotApp>
-
-// DetailProduct.guestGuard = true
-// DetailProduct.authGuard = false
+DetailProduct.authGuard = false
