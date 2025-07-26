@@ -37,5 +37,8 @@
   "phone-number-required": "Vui lòng nhập số điện thoại",
   "delivery-info": "Thông tin giao hàng",
   "status-required": "Vui lòng chọn trạng thái đơn hàng",
-  "order-details-required": "Vui lòng chọn sản phẩm"
+  "order-details-required": "Vui lòng chọn sản phẩm",
+  "order-success": "Cảm ơn bạn đã mua hàng",
+  "order-delivery-info": "Đơn hàng của bạn đã được ghi nhận và sẽ được giao trong vòng 5-7 ngày làm việc",
+  "view-orders": "Xem danh sách đơn hàng"
 }

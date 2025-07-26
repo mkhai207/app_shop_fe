@@ -37,5 +37,8 @@
   "phone-number-required": "Phone number is required",
   "delivery-info": "Delivery info",
   "status-required": "Please select a status",
-  "order-details-required": "Please select products"
+  "order-details-required": "Please select products",
+  "order-success": "Thank you for your purchase",
+  "order-delivery-info": "We've received your order will ship in 5-7 business days.",
+  "view-orders": "View orders"
 }

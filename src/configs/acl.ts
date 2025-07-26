@@ -62,7 +62,7 @@ const defineRulesFor = (role: string) => {
   if (role === 'ADMIN') {
     can('access', 'all') // Admin có quyền truy cập tất cả
   } else if (role === 'CUSTOMER') {
-    can('access', ['all']) // User chỉ truy cập dashboard và profile
+    can('access', ['all'])
   } else {
     can('access', ['all'])
   }
@@ -79,7 +79,7 @@ export const buildAbilityFor = (role: string): AppAbility => {
 export const defaultACLObj: ACLObj = {
   action: 'access',
   subject: 'all',
-  roles: ['ADMIN'] // Mặc định chỉ admin truy cập được
+  roles: ['ADMIN', 'CUSTOMER', 'STAFF'] // Mặc định chỉ admin truy cập được
 }
 
 export default defineRulesFor

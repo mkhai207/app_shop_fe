@@ -1,5 +1,5 @@
 import { createAsyncThunk } from '@reduxjs/toolkit'
-import { addToCart, getCartItems, updateCartItem, deleteCartItem } from 'src/services/cart'
+import { addToCart, getCartItems, updateCartItem, deleteCartItem, deleteCartItems } from 'src/services/cart'
 import { TUpdateCartItem } from 'src/types/cart'
 
 export const serviceName = 'cart'
@@ -64,6 +64,21 @@ export const deleteCartItemAsync = createAsyncThunk('cart/deleteCartItem', async
   if (response?.status === 'success') {
     dispatch(getCartItemsAsync())
 
+    return response
+  }
+
+  return {
+    data: null,
+    message: response?.response.data.message,
+    error: response?.response.data.error
+  }
+})
+
+// ** delete all cart items
+export const deleteCartItemsAsync = createAsyncThunk('cart/deleteCartItem', async () => {
+  const response = await deleteCartItems()
+
+  if (response?.status === 'success') {
     return response
   }
 

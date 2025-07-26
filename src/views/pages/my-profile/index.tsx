@@ -125,7 +125,7 @@ const MyProfilePage: NextPage<TProps> = () => {
       {isLoading || (loading && <Spinner />)}
       <Box
         sx={{
-          minHeight: '100vh',
+          minHeight: '50vh',
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',

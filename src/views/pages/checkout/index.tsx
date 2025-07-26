@@ -14,13 +14,14 @@ import {
 } from '@mui/material'
 import { NextPage } from 'next'
 import { useRouter } from 'next/router'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { useSelector } from 'react-redux'
 import Spinner from 'src/components/spinner'
 import { ROUTE_CONFIG } from 'src/configs/route'
 import { useAuth } from 'src/hooks/useAuth'
+import { deleteCartItems } from 'src/services/cart'
 import { createOrder } from 'src/services/checkout'
 import { RootState } from 'src/stores'
 import { TCreateOrder, TCreateOrderForm } from 'src/types/order'
@@ -35,8 +36,11 @@ const CheckoutPage: NextPage<TProps> = () => {
   const router = useRouter()
 
   const [loading, setLoading] = useState(false)
+  const [orderSuccess, setOrderSuccess] = useState(false)
 
   const orderTotal = items.reduce((total, item) => total + item.variant.product.price * item.quantity, 0)
+
+  const shippingFee = orderTotal > 500000 ? 0 : 30000
 
   const schema = yup.object({
     paymentMethod: yup.string().required(t('payment-method-required')),
@@ -52,6 +56,7 @@ const CheckoutPage: NextPage<TProps> = () => {
     try {
       setLoading(true)
       const response = await createOrder(data)
+      setOrderSuccess(true)
 
       if (response?.status === 'success' && response?.data) {
         setLoading(false)
@@ -75,11 +80,7 @@ const CheckoutPage: NextPage<TProps> = () => {
     phone: ''
   }
 
-  const {
-    handleSubmit,
-    control,
-    formState: { errors }
-  } = useForm({
+  const { handleSubmit, control } = useForm({
     defaultValues,
     mode: 'onBlur',
     resolver: yupResolver(schema)
@@ -93,7 +94,8 @@ const CheckoutPage: NextPage<TProps> = () => {
 
     const orderData = {
       ...data,
-      status: 'PENDING', // tam thoi
+
+      // status: 'PENDING', // tam thoi
       discount_code: '',
       orderDetails
     }
@@ -101,6 +103,12 @@ const CheckoutPage: NextPage<TProps> = () => {
 
     handleCreateOrder(orderData)
   }
+
+  useEffect(() => {
+    if (orderSuccess) {
+      deleteCartItems()
+    }
+  }, [orderSuccess])
 
   return (
     <>
@@ -205,7 +213,9 @@ const CheckoutPage: NextPage<TProps> = () => {
                         {item.variant.color.name} / {item.variant.size.name}
                       </Typography>
                     </Box>
-                    <Typography variant='subtitle1'>{item.variant.product.price.toLocaleString()}VNĐ</Typography>
+                    <Typography variant='subtitle1'>
+                      {(item.variant.product.price * item.quantity).toLocaleString()}VNĐ
+                    </Typography>
                   </Box>
                 ))
               ) : (
@@ -250,7 +260,7 @@ const CheckoutPage: NextPage<TProps> = () => {
                 )} */}
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography>Phí vận chuyển</Typography>
-                  <Typography>—</Typography>
+                  <Typography>{shippingFee.toLocaleString()}VNĐ</Typography>
                 </Box>
               </Box>
 
@@ -262,7 +272,7 @@ const CheckoutPage: NextPage<TProps> = () => {
                   <Typography variant='caption' color='text.secondary'>
                     VND{' '}
                   </Typography>
-                  <Typography variant='h6'>{orderTotal.toLocaleString()}VNĐ</Typography>
+                  <Typography variant='h6'>{(orderTotal + shippingFee).toLocaleString()}VNĐ</Typography>
                 </Box>
               </Box>
             </Card>
