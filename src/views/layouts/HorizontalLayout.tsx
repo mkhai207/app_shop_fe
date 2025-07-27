@@ -87,14 +87,7 @@ const HorizontalLayout: NextPage<TProps> = ({ open, toggleDrawer, isHideMenu }) 
             </IconButton>
           )}
           <Box sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={handleNavigateHome}>
-            <Image
-              src={logo}
-              alt='Shop Logo'
-              width={50}
-              height={50}
-              style={{ objectFit: 'contain', backgroundColor: 'transparent' }}
-            />
-            <Typography component='h1' variant='h6' color='inherit' noWrap sx={{ mr: 2 }}>
+            <Typography variant='h4' sx={{ fontSize: '24px', fontWeight: 'bold', color: 'inherit' }}>
               Fashion Shop
             </Typography>
           </Box>

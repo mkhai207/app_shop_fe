@@ -73,36 +73,6 @@ const UserDropdown = (props: TProps) => {
     router.push(`/${ROUTE_CONFIG.ORDER_HISTORY}`)
   }
 
-  const navItems = [
-    {
-      label: 'Trang chủ',
-      hasDropdown: false
-    },
-    {
-      label: 'Sản phẩm',
-      hasDropdown: true,
-      menuName: 'sanpham',
-      items: ['Danh mục 1', 'Danh mục 2', 'Danh mục 3']
-    },
-    {
-      label: 'SALE UP TO 50%',
-      hasDropdown: true,
-      menuName: 'sale',
-      items: ['Giảm 20%', 'Giảm 30%', 'Giảm 50%'],
-      isHighlight: true
-    },
-    {
-      label: 'Bộ Sưu Tập',
-      hasDropdown: true,
-      menuName: 'bosuutap',
-      items: ['Bộ sưu tập mùa hè', 'Bộ sưu tập mùa đông', 'Bộ sưu tập đặc biệt']
-    },
-    {
-      label: 'Hệ thống cửa hàng',
-      hasDropdown: false
-    }
-  ]
-
   return (
     <React.Fragment>
       <Box sx={{ display: 'flex', alignItems: 'center', textAlign: 'center' }}>
@@ -207,7 +177,7 @@ const UserDropdown = (props: TProps) => {
           <Avatar sx={{ backgroundColor: 'transparent' }}>
             <IconifyIcon icon='lets-icons:order-light' />
           </Avatar>
-          {t('change-password')}
+          {t('order-history')}
         </MenuItem>
         <Divider />
         <MenuItem onClick={logout}>

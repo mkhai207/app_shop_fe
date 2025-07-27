@@ -1,9 +1,11 @@
 // ** Mui Imports
 import { KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material'
 import { Box, Button, Menu, MenuItem } from '@mui/material'
+import { useRouter } from 'next/router'
 import { useState } from 'react'
 
 const NavItem = () => {
+  const router = useRouter()
   const [anchorEl, setAnchorEl] = useState<Record<string, HTMLElement | null>>({})
 
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, menuName: string) => {
@@ -20,9 +22,14 @@ const NavItem = () => {
     }))
   }
 
+  const handleNavigate = (path: string) => {
+    router.push(path)
+  }
+
   const navItems = [
     {
       label: 'Trang chủ',
+      path: '/',
       hasDropdown: false
     },
     {
@@ -36,7 +43,7 @@ const NavItem = () => {
       hasDropdown: true,
       menuName: 'sale',
       items: ['Giảm 20%', 'Giảm 30%', 'Giảm 50%'],
-      isHighlight: true
+      isHighlight: false
     },
     {
       label: 'Bộ Sưu Tập',
@@ -46,6 +53,7 @@ const NavItem = () => {
     },
     {
       label: 'Hệ thống cửa hàng',
+      path: '/',
       hasDropdown: false
     }
   ]
@@ -64,7 +72,7 @@ const NavItem = () => {
                     color: item.isHighlight ? '#ff4444' : '#333',
                     fontWeight: 'bold',
                     textTransform: 'none',
-                    fontSize: '14px',
+                    fontSize: '16px',
                     '&:hover': {
                       backgroundColor: 'transparent',
                       color: '#ff4444'
@@ -113,7 +121,7 @@ const NavItem = () => {
                 sx={{
                   color: '#333',
                   textTransform: 'none',
-                  fontSize: '14px',
+                  fontSize: '16px',
                   fontWeight: 'bold',
                   '&:hover': {
                     backgroundColor: 'transparent',
@@ -122,6 +130,7 @@ const NavItem = () => {
                   px: 2,
                   py: 1
                 }}
+                onClick={() => handleNavigate(item.path as string)}
               >
                 {item.label}
               </Button>

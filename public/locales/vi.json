@@ -40,5 +40,14 @@
   "order-details-required": "Vui lòng chọn sản phẩm",
   "order-success": "Cảm ơn bạn đã mua hàng",
   "order-delivery-info": "Đơn hàng của bạn đã được ghi nhận và sẽ được giao trong vòng 5-7 ngày làm việc",
-  "view-orders": "Xem danh sách đơn hàng"
+  "view-orders": "Xem danh sách đơn hàng",
+  "new-products": "Sản phẩm mới",
+  "top-trending": "Top trending",
+  "view_more": "Xem thêm",
+  "no-products": "Không có sản phẩm",
+  "load_new_products_success": "Tải sản phẩm mới thành công",
+  "load_products_error": "Tải sản phẩm mới thất bại",
+  "banner_alt": "Banner",
+  "new_products": "Sản phẩm mới",
+  "order-history": "Lịch sử đơn hàng"
 }

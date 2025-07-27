@@ -40,5 +40,14 @@
   "order-details-required": "Please select products",
   "order-success": "Thank you for your purchase",
   "order-delivery-info": "We've received your order will ship in 5-7 business days.",
-  "view-orders": "View orders"
+  "view-orders": "View orders",
+  "new-products": "New products",
+  "top-trending": "Top trending",
+  "view-more": "View more",
+  "no-products": "No products",
+  "load_new_products_success": "Load new products successfully",
+  "load_products_error": "Load new products failed",
+  "banner_alt": "Banner",
+  "new_products": "New products",
+  "order-history": "Order history"
 }

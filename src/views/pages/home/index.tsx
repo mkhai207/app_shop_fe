@@ -1,113 +1,77 @@
-import { Box, Grid, Typography, useTheme } from '@mui/material'
+import { ChevronLeft, ChevronRight } from '@mui/icons-material'
+import { Box, Button, Container, Grid, IconButton, Typography, useTheme } from '@mui/material'
 import { NextPage } from 'next'
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { useTranslation } from 'react-i18next'
-import CardProduct from './components/CardProduct'
-import { getAllProductsPublic } from 'src/services/product'
-import { PAGE_SIZE_OPTION } from 'src/configs/gridConfig'
-import { TProduct } from 'src/types/product'
-import CustomPagination from 'src/components/custom-pagination'
 import Spinner from 'src/components/spinner'
+import { getAllProductsPublic } from 'src/services/product'
+import { TProduct } from 'src/types/product'
+import CardProduct from '../../../components/card-product/CardProduct'
+import { ROUTE_CONFIG } from 'src/configs/route'
+import { useRouter } from 'next/router'
 
 type TProps = {}
 
 const HomePage: NextPage<TProps> = () => {
   const theme = useTheme()
   const { t } = useTranslation()
+  const router = useRouter()
 
-  const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTION[0])
-  const [page, setPage] = useState(1)
+  const [currentSlide, setCurrentSlide] = useState(0)
+  const totalPages = 5
+  const productsPerPage = 4
 
-  // Filter states
-  const [searchBy, setSearchBy] = useState('')
-  const [sortBy, setSortBy] = useState('created_at:DESC')
-  const [typeSelected, setTypeSelected] = useState<string[]>([])
-  const [statusSelected, setStatusSelected] = useState<string[]>([])
+  const handleNavigateProduct = () => {
+    router.push(`${ROUTE_CONFIG.PRODUCT}`)
+  }
 
-  // Data states
+  const nextSlide = () => {
+    setCurrentSlide(prev => (prev + 1) % totalPages)
+  }
+
+  const prevSlide = () => {
+    setCurrentSlide(prev => (prev - 1 + totalPages) % totalPages)
+  }
+
   const [loading, setLoading] = useState(false)
-  const [productsPublic, setProductsPublic] = useState<{
-    data: any[]
-    total: number
-    totalPages: number
-    currentPage: number
-  }>({
-    data: [],
-    total: 0,
-    totalPages: 0,
-    currentPage: 1
-  })
+  const [newProducts, setNewProducts] = useState<TProduct[]>([])
 
-  const formatFiltersForAPI = () => {
+  const formatFiltersForAPI = (customLimit?: number, customSort?: string) => {
     const params: Record<string, any> = {
-      page,
-      limit: pageSize,
-      sort: sortBy
-    }
-
-    // Add search filter
-    if (searchBy.trim()) {
-      params.name = `like:${searchBy.trim()}`
-    }
-
-    // Add status filter
-    if (statusSelected.length > 0) {
-      params.status = statusSelected.length === 1 ? statusSelected[0] : statusSelected
-    }
-
-    // Add type/category filter
-    if (typeSelected.length > 0) {
-      params.type = typeSelected.length === 1 ? typeSelected[0] : typeSelected
+      page: 1,
+      limit: customLimit || 20,
+      sort: customSort || 'created_at:DESC'
     }
 
     return params
   }
 
-  // fetch api
-  const handleGetListProducts = async () => {
+  const handleGetListNewProducts = async () => {
     try {
       setLoading(true)
-
-      const queryParams = formatFiltersForAPI()
-
+      const queryParams = formatFiltersForAPI(20, 'created_at:DESC')
       const response = await getAllProductsPublic({ params: queryParams })
-      console.log('API Response:', response)
 
       if (response.status === 'success') {
-        console.log('data', response?.data)
-        setProductsPublic({
-          data: response?.data || [],
-          total: response.meta?.totalItems || 0,
-          totalPages: response.meta?.totalPages || 0,
-          currentPage: response.meta?.currentPage || 1
-        })
-
-        toast.success('Tải sản phẩm thành công!')
+        setNewProducts(response?.data || [])
+        toast.success(t('load_new_products_success'))
       } else {
-        toast.error(response.message || 'Có lỗi xảy ra khi tải sản phẩm')
+        toast.error(response.message || t('load_products_error'))
       }
     } catch (error: any) {
-      console.error('Error fetching products:', error)
-      toast.error(error?.message || 'Có lỗi xảy ra khi tải sản phẩm')
+      toast.error(error?.message || t('load_products_error'))
     } finally {
       setLoading(false)
     }
   }
 
-  const handleOnchangePagination = (page: number, pageSize: number) => {
-    setPage(page)
-    setPageSize(pageSize)
-  }
-
   useEffect(() => {
-    handleGetListProducts()
-  }, [page, pageSize, searchBy, sortBy, statusSelected, typeSelected])
-
-  // only run on mount
-  useEffect(() => {
-    handleGetListProducts()
+    handleGetListNewProducts()
   }, [])
+
+  // Lấy 4 sản phẩm cho trang hiện tại
+  const displayedProducts = newProducts.slice(currentSlide * productsPerPage, (currentSlide + 1) * productsPerPage)
 
   return (
     <>
@@ -119,30 +83,129 @@ const HomePage: NextPage<TProps> = () => {
           width: '100%'
         }}
       >
-        <Box sx={{ height: '100%', width: '100%', mt: 4, mb: 4 }}>
-          <Grid container spacing={4} justifyContent='flex-start'>
-            {productsPublic?.data?.length > 0 ? (
-              productsPublic.data.map((item: TProduct) => (
-                <Grid item key={item.id} xs={12} sm={6} md={4} lg={3}>
-                  <CardProduct item={item} />
-                </Grid>
-              ))
-            ) : (
-              <Grid item xs={12}>
-                <Typography>Không có sản phẩm</Typography>
-              </Grid>
-            )}
-          </Grid>
+        {/* Banner Section */}
+        <Box
+          sx={{
+            width: '100vw',
+            height: 'auto',
+            mb: 10,
+            position: 'relative',
+            overflow: 'hidden',
+            borderRadius: 2,
+            boxShadow: theme.shadows[2],
+            cursor: 'pointer'
+          }}
+          onClick={() => handleNavigateProduct()}
+        >
+          <img
+            src='/images/home-banner.png'
+            alt={t('banner_alt')}
+            style={{
+              width: '100%',
+              height: 'auto',
+              objectFit: 'cover'
+            }}
+          />
         </Box>
-        <CustomPagination
-          onChangePagination={handleOnchangePagination}
-          pageSizeOptions={PAGE_SIZE_OPTION}
-          pageSize={pageSize}
-          totalPages={productsPublic?.totalPages}
-          page={page}
-          rowLength={10}
-          isHideShowed
-        />
+
+        <Container maxWidth='lg' sx={{ py: 4 }}>
+          {/* Header */}
+          <Box textAlign='center' mb={4}>
+            <Typography variant='h4' component='h1' fontWeight='bold' mb={1}>
+              {t('new_products')}
+            </Typography>
+            <Typography variant='body1' color='text.secondary' fontStyle='italic'>
+              {t('top_trending')}
+            </Typography>
+          </Box>
+
+          {/* Product Carousel */}
+          <Box position='relative'>
+            {/* Navigation Arrows */}
+            <IconButton
+              sx={{
+                position: 'absolute',
+                left: -20,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                zIndex: 2,
+                bgcolor: 'white',
+                boxShadow: 1,
+                '&:hover': { bgcolor: 'grey.100' }
+              }}
+              onClick={prevSlide}
+            >
+              <ChevronLeft />
+            </IconButton>
+
+            <IconButton
+              sx={{
+                position: 'absolute',
+                right: -20,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                zIndex: 2,
+                bgcolor: 'white',
+                boxShadow: 1,
+                '&:hover': { bgcolor: 'grey.100' }
+              }}
+              onClick={nextSlide}
+            >
+              <ChevronRight />
+            </IconButton>
+
+            {/* Products Grid */}
+            <Grid container spacing={2}>
+              {displayedProducts.length > 0 ? (
+                displayedProducts.map((item: TProduct) => (
+                  <Grid item key={item.id} xs={12} sm={6} md={3}>
+                    <CardProduct item={item} />
+                  </Grid>
+                ))
+              ) : (
+                <Grid item xs={12}>
+                  <Typography>{t('no_products')}</Typography>
+                </Grid>
+              )}
+            </Grid>
+          </Box>
+
+          {/* Pagination Dots */}
+          <Box display='flex' justifyContent='center' gap={1} mt={3}>
+            {Array.from({ length: totalPages }).map((_, index) => (
+              <Box
+                key={index}
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  bgcolor: currentSlide === index ? 'primary.main' : 'grey.300',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+                onClick={() => setCurrentSlide(index)}
+              />
+            ))}
+          </Box>
+
+          {/* View More Button */}
+          <Box textAlign='center' mt={4}>
+            <Button
+              variant='outlined'
+              size='large'
+              sx={{
+                borderRadius: 0,
+                px: 4,
+                py: 1,
+                textTransform: 'none',
+                fontWeight: 'normal'
+              }}
+              onClick={() => handleNavigateProduct()}
+            >
+              {t('view_more')} →
+            </Button>
+          </Box>
+        </Container>
       </Box>
     </>
   )
