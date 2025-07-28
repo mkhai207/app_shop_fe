@@ -4,9 +4,9 @@ import IconButton from '@mui/material/IconButton'
 import { styled } from '@mui/material/styles'
 import Toolbar from '@mui/material/Toolbar'
 import { NextPage } from 'next'
-import Image from 'next/image'
 import { useRouter } from 'next/router'
 import IconifyIcon from 'src/components/Icon'
+import InputSearch from 'src/components/input-search'
 import { ROUTE_CONFIG } from 'src/configs/route'
 import { useAuth } from 'src/hooks/useAuth'
 import UserDropdown from 'src/views/layouts/components/user-dropdown'
@@ -14,7 +14,7 @@ import CartProduct from './components/cart-product'
 import NavItem from './components/horizontal-layout-item'
 import LanguageDropDown from './components/language-dropdown'
 import ModeToggle from './components/mode-toggle'
-import logo from '/public/images/fashion-shop-logo.jpg'
+import { useFilter } from 'src/contexts/FilterContext'
 
 const drawerWidth: number = 240
 
@@ -49,12 +49,19 @@ const AppBar = styled(MuiAppBar, {
   })
 }))
 
-// TODO remove, this demo shouldn't need to reset the theme.
-// const defaultTheme = createTheme()
-
 const HorizontalLayout: NextPage<TProps> = ({ open, toggleDrawer, isHideMenu }) => {
   const { user } = useAuth()
   const router = useRouter()
+
+  const { filters, updateSearch } = useFilter()
+
+  const handleSearch = (value: string) => {
+    updateSearch(value)
+    const location = router.pathname
+    if (location !== ROUTE_CONFIG.PRODUCT) {
+      router.push(ROUTE_CONFIG.PRODUCT)
+    }
+  }
 
   const handleNavigateHome = () => {
     router.push('/')
@@ -95,7 +102,9 @@ const HorizontalLayout: NextPage<TProps> = ({ open, toggleDrawer, isHideMenu }) 
         <Box>
           <NavItem />
         </Box>
+
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <InputSearch value='' onChange={handleSearch} expandable={true} />
           <LanguageDropDown />
           <ModeToggle />
           <CartProduct />

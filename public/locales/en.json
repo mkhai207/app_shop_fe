@@ -49,5 +49,7 @@
   "load_products_error": "Load new products failed",
   "banner_alt": "Banner",
   "new_products": "New products",
-  "order-history": "Order history"
+  "order-history": "Order history",
+  "all-product": "All product",
+  "sort": "Sort"
 }

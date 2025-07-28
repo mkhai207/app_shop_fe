@@ -23,6 +23,7 @@ import { Toaster } from 'react-hot-toast'
 
 // ** Contexts
 import { AuthProvider } from 'src/contexts/AuthContext'
+import { FilterProvider } from 'src/contexts/FilterContext'
 
 // ** Global css styles
 import 'src/styles/globals.scss'
@@ -123,11 +124,13 @@ export default function App(props: ExtendedAppProps) {
               {({ settings }) => {
                 return (
                   <ThemeComponent settings={settings}>
-                    <Guard authGuard={authGuard} guestGuard={guestGuard}>
-                      <AclGuard aclAbilities={aclAbilities} guestGuard={guestGuard} authGuard={authGuard}>
-                        {getLayout(<Component {...pageProps} />)}
-                      </AclGuard>
-                    </Guard>
+                    <FilterProvider>
+                      <Guard authGuard={authGuard} guestGuard={guestGuard}>
+                        <AclGuard aclAbilities={aclAbilities} guestGuard={guestGuard} authGuard={authGuard}>
+                          {getLayout(<Component {...pageProps} />)}
+                        </AclGuard>
+                      </Guard>
+                    </FilterProvider>
                     <ReactHotToast>
                       <Toaster position={settings.toastPosition} toastOptions={toastOptions} />
                     </ReactHotToast>

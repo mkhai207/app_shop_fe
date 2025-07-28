@@ -70,7 +70,6 @@ const HomePage: NextPage<TProps> = () => {
     handleGetListNewProducts()
   }, [])
 
-  // Lấy 4 sản phẩm cho trang hiện tại
   const displayedProducts = newProducts.slice(currentSlide * productsPerPage, (currentSlide + 1) * productsPerPage)
 
   return (
@@ -112,10 +111,10 @@ const HomePage: NextPage<TProps> = () => {
           {/* Header */}
           <Box textAlign='center' mb={4}>
             <Typography variant='h4' component='h1' fontWeight='bold' mb={1}>
-              {t('new_products')}
+              {t('new-products')}
             </Typography>
             <Typography variant='body1' color='text.secondary' fontStyle='italic'>
-              {t('top_trending')}
+              {t('top-trending')}
             </Typography>
           </Box>
 

@@ -1,5 +1,5 @@
 import { NextPage } from 'next'
-import LayoutNotApp from 'src/views/layouts/LayoutNotApp'
+import AccountWithHeaderLayout from 'src/views/layouts/AccountLayoutNotApp'
 import MyProfilePage from 'src/views/pages/my-profile'
 
 type TProps = {}
@@ -10,4 +10,4 @@ const MyProfile: NextPage<TProps> = () => {
 
 export default MyProfile
 
-MyProfile.getLayout = (page: React.ReactNode) => <LayoutNotApp>{page}</LayoutNotApp>
+MyProfile.getLayout = (page: React.ReactNode) => <AccountWithHeaderLayout>{page}</AccountWithHeaderLayout>
