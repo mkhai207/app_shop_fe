@@ -92,10 +92,15 @@ const CheckoutPage: NextPage<TProps> = () => {
       quantity: item.quantity
     }))
 
+    let status = null
+    if (user?.role.code === 'ADMIN') {
+      status = 'PENDING'
+    }
+
     const orderData = {
       ...data,
 
-      // status: 'PENDING', // tam thoi
+      status,
       discount_code: '',
       orderDetails
     }

@@ -1,16 +1,7 @@
-import {
-  Box,
-  Divider,
-  FormControl,
-  Grid,
-  MenuItem,
-  Select,
-  SelectChangeEvent,
-  Typography,
-  useTheme
-} from '@mui/material'
+import { Box, FormControl, Grid, MenuItem, Select, SelectChangeEvent, Typography, useTheme } from '@mui/material'
 import { NextPage } from 'next'
 import { useRouter } from 'next/router'
+import qs from 'qs'
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { useTranslation } from 'react-i18next'
@@ -18,12 +9,11 @@ import CustomPagination from 'src/components/custom-pagination'
 import Spinner from 'src/components/spinner'
 import { PAGE_SIZE_OPTION } from 'src/configs/gridConfig'
 import { ROUTE_CONFIG } from 'src/configs/route'
-import { getAllProductsPublic, searchProducts } from 'src/services/product'
+import { useFilter } from 'src/contexts/FilterContext'
+import { searchProducts } from 'src/services/product'
 import { TProduct } from 'src/types/product'
 import CardProduct from '../../../components/card-product/CardProduct'
 import FilterAccordion from './components/Filter'
-import { useFilter } from 'src/contexts/FilterContext'
-import qs from 'qs'
 
 type TProps = {}
 
