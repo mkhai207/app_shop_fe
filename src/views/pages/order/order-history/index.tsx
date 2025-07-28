@@ -1,5 +1,4 @@
 import {
-  Avatar,
   Box,
   Button,
   Chip,
@@ -12,20 +11,17 @@ import {
   TableRow,
   Typography
 } from '@mui/material'
-import { useEffect, useState } from 'react'
-import qs from 'qs'
-import { getListOrders, retryPayOrder } from 'src/services/order'
-import { TOrder } from 'src/types/order'
-import toast from 'react-hot-toast'
 import dayjs from 'dayjs'
-import { PAGE_SIZE_OPTION } from 'src/configs/gridConfig'
+import { t } from 'i18next'
+import qs from 'qs'
+import { useEffect, useState } from 'react'
+import toast from 'react-hot-toast'
 import CustomPagination from 'src/components/custom-pagination'
 import Spinner from 'src/components/spinner'
-import { t } from 'i18next'
-import { useRouter } from 'next/router'
-import { ROUTE_CONFIG } from 'src/configs/route'
+import { PAGE_SIZE_OPTION } from 'src/configs/gridConfig'
+import { getListOrders, retryPayOrder } from 'src/services/order'
 
-const getStatusStyles = status => {
+const getStatusStyles = (status: string) => {
   switch (status) {
     case 'PENDING':
       return { backgroundColor: '#FFF3E0', color: '#F57C00' } // Cam nhạt
@@ -36,15 +32,15 @@ const getStatusStyles = status => {
     case 'SHIPPING':
       return { backgroundColor: '#E3F2FD', color: '#0288D1' } // Xanh dương nhạt
     case 'COMPLETED':
-      return { backgroundColor: '#ECEFF1', color: '#37474F' } // Xám nhạt
+      return { backgroundColor: '#ECEFF1', color: '#37474F' } // Xám nhạt,
+    case 'CANCELLED':
+      return { backgroundColor: '#FFEBEE', color: '#D32F2F' } // Đỏ nhạt
     default:
       return { backgroundColor: '#F5F5F5', color: '#616161' } // Mặc định
   }
 }
 
 const OrderHistoryPage = () => {
-  const router = useRouter()
-
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTION[0])
   const [orders, setOrders] = useState<{
@@ -93,6 +89,7 @@ const OrderHistoryPage = () => {
       if (response?.status === 'success' && response?.data) {
         setLoading(false)
         const url = response?.data?.vnpayUrl
+        console.log('url', url)
         if (url) {
           window.location.href = url
         }
