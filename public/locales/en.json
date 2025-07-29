@@ -53,5 +53,10 @@
   "all-product": "All product",
   "sort": "Sort",
   "view": "View",
-  "pay": "Pay"
+  "pay": "Pay",
+  "newest": "Newest",
+  "price-asc": "Price: Ascending",
+  "price-desc": "Price: Descending",
+  "name-asc": "Name: A-Z",
+  "no-products-found": "No products found"
 }

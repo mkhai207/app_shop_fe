@@ -24,3 +24,13 @@ export const retryPayOrder = async (id: string) => {
     return error
   }
 }
+
+export const getOrderDetail = async (id: string) => {
+  try {
+    const res = await instanceAxios.get(`${CONFIG_API.ORDER.INDEX}/get-orders/${id}`)
+
+    return res.data
+  } catch (error) {
+    return error
+  }
+}

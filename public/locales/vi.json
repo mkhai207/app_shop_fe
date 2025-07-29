@@ -53,5 +53,10 @@
   "all-product": "Tất cả sản phẩm",
   "sort": "Sắp xếp",
   "view": "Xem",
-  "pay": "Thanh toán"
+  "pay": "Thanh toán",
+  "newest": "Mới nhất",
+  "price-asc": "Giá: Tăng dần",
+  "price-desc": "Giá: Giảm dần",
+  "name-asc": "Tên: A-Z",
+  "no-products-found": "Không có sản phẩm"
 }

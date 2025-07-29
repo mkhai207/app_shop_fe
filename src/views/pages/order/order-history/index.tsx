@@ -13,34 +13,22 @@ import {
 } from '@mui/material'
 import dayjs from 'dayjs'
 import { t } from 'i18next'
+import { useRouter } from 'next/router'
 import qs from 'qs'
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
+import { useTranslation } from 'react-i18next'
 import CustomPagination from 'src/components/custom-pagination'
 import Spinner from 'src/components/spinner'
 import { PAGE_SIZE_OPTION } from 'src/configs/gridConfig'
+import { ROUTE_CONFIG } from 'src/configs/route'
 import { getListOrders, retryPayOrder } from 'src/services/order'
-
-const getStatusStyles = (status: string) => {
-  switch (status) {
-    case 'PENDING':
-      return { backgroundColor: '#FFF3E0', color: '#F57C00' } // Cam nhạt
-    case 'UNPAID':
-      return { backgroundColor: '#FFEBEE', color: '#D32F2F' } // Đỏ nhạt
-    case 'PAID':
-      return { backgroundColor: '#E8F5E9', color: '#2E7D32' } // Xanh lá nhạt
-    case 'SHIPPING':
-      return { backgroundColor: '#E3F2FD', color: '#0288D1' } // Xanh dương nhạt
-    case 'COMPLETED':
-      return { backgroundColor: '#ECEFF1', color: '#37474F' } // Xám nhạt,
-    case 'CANCELLED':
-      return { backgroundColor: '#FFEBEE', color: '#D32F2F' } // Đỏ nhạt
-    default:
-      return { backgroundColor: '#F5F5F5', color: '#616161' } // Mặc định
-  }
-}
+import { getStatusColor, getStatusText } from 'src/utils/status-style'
 
 const OrderHistoryPage = () => {
+  const router = useRouter()
+  const { t } = useTranslation()
+
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTION[0])
   const [orders, setOrders] = useState<{
@@ -97,6 +85,10 @@ const OrderHistoryPage = () => {
     } catch (error) {
       setLoading(false)
     }
+  }
+
+  const handleViewOrder = (orderId: string) => {
+    router.push(`${ROUTE_CONFIG.ORDER}/${orderId}`)
   }
 
   const handleGetListOrders = async () => {
@@ -165,10 +157,15 @@ const OrderHistoryPage = () => {
                   <TableCell>{order.shipping_address}</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>{dayjs(order.created_at).format('DD/MM/YYYY')}</TableCell>
                   <TableCell>
-                    <Chip label={order.status} sx={getStatusStyles(order.status)} size='small' />
+                    <Chip
+                      label={getStatusText(order?.status)}
+                      color={getStatusColor(order?.status)}
+                      size='medium'
+                      sx={{ fontWeight: 'bold', mt: 1 }}
+                    />
                   </TableCell>
                   <TableCell>
-                    <Button variant='contained' size='small' sx={{ mr: 2 }}>
+                    <Button variant='contained' size='small' sx={{ mr: 2 }} onClick={() => handleViewOrder(order.id)}>
                       {t('view')}
                     </Button>
                     {order.status === 'UNPAID' && (

@@ -23,13 +23,12 @@ const ProductPage: NextPage<TProps> = () => {
   const theme = useTheme()
   const { t } = useTranslation()
   const router = useRouter()
-  const { filters, setFilter, updateSortBy } = useFilter()
+  const { filters, updateSortBy } = useFilter()
 
   const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTION[0])
   const [page, setPage] = useState(1)
 
   // Filter states
-  const [searchBy, setSearchBy] = useState('')
   const [statusSelected, setStatusSelected] = useState<string[]>([])
 
   // Data states
@@ -207,14 +206,12 @@ const ProductPage: NextPage<TProps> = () => {
           totalPages: response.data.totalPages || 0,
           currentPage: response.data.currentPage || 1
         })
-
-        toast.success('Tải sản phẩm thành công!')
       } else {
-        toast.error(response.message || 'Có lỗi xảy ra khi tải sản phẩm')
+        toast.error(response.message || t('load_products_error'))
       }
     } catch (error: any) {
       console.error('Error fetching products:', error)
-      toast.error(error?.message || 'Có lỗi xảy ra khi tải sản phẩm')
+      toast.error(error?.message || t('load_products_error'))
     } finally {
       setLoading(false)
     }
@@ -315,11 +312,11 @@ const ProductPage: NextPage<TProps> = () => {
                   }
                 }}
               >
-                <MenuItem value='Mới nhất'>Mới nhất</MenuItem>
-                <MenuItem value='Sản phẩm nổi bật'>Sản phẩm nổi bật</MenuItem>
-                <MenuItem value='Giá: Tăng dần'>Giá: Tăng dần</MenuItem>
-                <MenuItem value='Giá: Giảm dần'>Giá: Giảm dần</MenuItem>
-                <MenuItem value='Tên: A-Z'>Tên: A-Z</MenuItem>
+                <MenuItem value='Mới nhất'>{t('newest')}</MenuItem>
+                <MenuItem value='Sản phẩm nổi bật'>{t('top-trending')}</MenuItem>
+                <MenuItem value='Giá: Tăng dần'>{t('price-asc')}</MenuItem>
+                <MenuItem value='Giá: Giảm dần'>{t('price-desc')}</MenuItem>
+                <MenuItem value='Tên: A-Z'>{t('name-asc')}</MenuItem>
               </Select>
             </FormControl>
           </Box>
@@ -344,7 +341,7 @@ const ProductPage: NextPage<TProps> = () => {
                   ))
                 ) : (
                   <Grid item xs={12}>
-                    <Typography>Không có sản phẩm</Typography>
+                    <Typography>{t('no-products-found')}</Typography>
                   </Grid>
                 )}
               </Grid>
