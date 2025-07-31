@@ -1,21 +1,20 @@
 // ** Mui Imports
-import * as React from 'react'
-import Box from '@mui/material/Box'
+import { Badge, styled } from '@mui/material'
 import Avatar from '@mui/material/Avatar'
-import Menu from '@mui/material/Menu'
-import MenuItem from '@mui/material/MenuItem'
-import ListItemIcon from '@mui/material/ListItemIcon'
+import Box from '@mui/material/Box'
 import Divider from '@mui/material/Divider'
 import IconButton from '@mui/material/IconButton'
+import Menu from '@mui/material/Menu'
+import MenuItem from '@mui/material/MenuItem'
 import Tooltip from '@mui/material/Tooltip'
-import { useAuth } from 'src/hooks/useAuth'
-import Image from 'next/image'
-import IconifyIcon from 'src/components/Icon'
-import { useTranslation } from 'react-i18next'
-import { useRouter } from 'next/router'
-import { ROUTE_CONFIG } from 'src/configs/route'
 import Typography from '@mui/material/Typography'
-import { Badge, styled } from '@mui/material'
+import Image from 'next/image'
+import { useRouter } from 'next/router'
+import * as React from 'react'
+import { useTranslation } from 'react-i18next'
+import IconifyIcon from 'src/components/Icon'
+import { ROUTE_CONFIG } from 'src/configs/route'
+import { useAuth } from 'src/hooks/useAuth'
 
 type TProps = {}
 
@@ -71,6 +70,10 @@ const UserDropdown = (props: TProps) => {
 
   const handleNavigateOrderHistory = () => {
     router.push(`/${ROUTE_CONFIG.ORDER_HISTORY}`)
+  }
+
+  const handleNavigateAdmin = () => {
+    router.push(`/${ROUTE_CONFIG.DASHBOARD}`)
   }
 
   return (
@@ -160,11 +163,27 @@ const UserDropdown = (props: TProps) => {
           </Box>
         </Box>
         <Divider />
+        {user?.role?.code === 'ADMIN' && (
+          <MenuItem onClick={handleNavigateAdmin}>
+            <Avatar>
+              <IconifyIcon icon='clarity:administrator-line' />
+            </Avatar>{' '}
+            {t('admin-dashboard')}
+          </MenuItem>
+        )}
+
         <MenuItem onClick={handleNavigateMyProfile}>
           <Avatar>
             <IconifyIcon icon='ph:user-thin' />
           </Avatar>{' '}
           {t('my-profile')}
+        </MenuItem>
+
+        <MenuItem onClick={handleNavigateOrderHistory}>
+          <Avatar sx={{ backgroundColor: 'transparent' }}>
+            <IconifyIcon icon='lets-icons:order-light' />
+          </Avatar>
+          {t('order-history')}
         </MenuItem>
 
         <MenuItem onClick={logout}>
@@ -173,12 +192,7 @@ const UserDropdown = (props: TProps) => {
           </Avatar>
           {t('change-password')}
         </MenuItem>
-        <MenuItem onClick={handleNavigateOrderHistory}>
-          <Avatar sx={{ backgroundColor: 'transparent' }}>
-            <IconifyIcon icon='lets-icons:order-light' />
-          </Avatar>
-          {t('order-history')}
-        </MenuItem>
+
         <Divider />
         <MenuItem onClick={logout}>
           <Avatar sx={{ backgroundColor: 'transparent' }}>

@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { CONFIG_API } from 'src/configs/api'
+import instanceAxios from 'src/helpers/axios'
 import { TParamsGetProducts } from 'src/types/product'
 
 export const getAllProductsPublic = async (data: {
@@ -37,6 +38,16 @@ export const searchProducts = async (data: {
       params: data.params,
       paramsSerializer: data.paramsSerializer
     })
+
+    return res.data
+  } catch (error) {
+    return error
+  }
+}
+
+export const getProductRecommend = async (id: string) => {
+  try {
+    const res = await instanceAxios.get(`${CONFIG_API.AI_RECOMMEND.INDEX}/${id}`)
 
     return res.data
   } catch (error) {

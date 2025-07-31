@@ -58,5 +58,6 @@
   "price-asc": "Price: Ascending",
   "price-desc": "Price: Descending",
   "name-asc": "Name: A-Z",
-  "no-products-found": "No products found"
+  "no-products-found": "No products found",
+  "admin-dashboard": "Admin dashboard"
 }

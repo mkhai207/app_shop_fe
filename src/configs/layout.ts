@@ -1,32 +1,55 @@
-export const VerticalItems = [
+export interface MenuItem {
+  title: string
+  icon: string
+  path?: string
+  children?: MenuItem[]
+}
+
+export const VerticalItems: MenuItem[] = [
   {
-    title: 'Parent 1',
-    icon: 'material-symbols:home',
-    path: '/',
+    title: 'Hệ thống',
+    icon: 'icon-park-outline:system',
     children: [
       {
-        title: 'Children 1.1',
-        icon: 'material-symbols:home',
-        path: '/',
-        children: [
-          {
-            title: 'children 1.1.1',
-            icon: 'material-symbols:home',
-            path: '/'
-          }
-        ]
+        title: 'Người dùng',
+        icon: 'mdi:user',
+        path: '/manage-system/user'
       }
     ]
   },
   {
-    title: 'Parent 2',
-    icon: 'material-symbols:home',
-    path: '/',
+    title: 'Quản trị sản phẩm',
+    icon: 'oui:nav-manage',
     children: [
       {
-        title: 'Parent 2.1',
-        icon: 'material-symbols:home',
-        path: '/'
+        title: 'Sản phẩm',
+        icon: 'ix:product',
+        path: '/manage-system/product'
+      },
+      {
+        title: 'Đơn hàng',
+        icon: 'lets-icons:order',
+        path: '/manage-system/order'
+      },
+      {
+        title: 'Đánh giá',
+        icon: 'material-symbols:rate-review-outline-rounded',
+        path: '/manage-system/review'
+      },
+      {
+        title: 'Khuyến mãi',
+        icon: 'mdi:discount',
+        path: '/manage-system/discount'
+      },
+      {
+        title: 'Phân loại',
+        icon: 'material-symbols:category',
+        path: '/manage-system/category'
+      },
+      {
+        title: 'Thương hiệu',
+        icon: 'tabler:brand-nexo',
+        path: '/manage-system/brand'
       }
     ]
   }

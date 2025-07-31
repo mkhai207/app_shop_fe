@@ -58,5 +58,6 @@
   "price-asc": "Giá: Tăng dần",
   "price-desc": "Giá: Giảm dần",
   "name-asc": "Tên: A-Z",
-  "no-products-found": "Không có sản phẩm"
+  "no-products-found": "Không có sản phẩm",
+  "admin-dashboard": "Trang quản trị"
 }

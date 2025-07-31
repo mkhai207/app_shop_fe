@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { NextPage } from 'next'
 import { Collapse, List, ListItemButton, ListItemIcon, ListItemText } from '@mui/material'
-import { VerticalItems } from 'src/configs/layout'
+import { MenuItem, VerticalItems } from 'src/configs/layout'
 import IconifyIcon from 'src/components/Icon'
+import { useRouter } from 'next/router'
 
 type TProps = {
   open: boolean
@@ -21,12 +22,21 @@ const RecursiveListItems = ({
   openItem: { [key: string]: boolean }
   setOpenItem: React.Dispatch<React.SetStateAction<{ [key: string]: boolean }>>
 }) => {
-  const handleClick = (title: string) => {
+  const router = useRouter()
+  const handleClick = (item: MenuItem) => {
     if (!disabled) {
-      setOpenItem(prev => ({
-        ...prev,
-        [title]: !prev[title]
-      }))
+      // setOpenItem(prev => ({
+      //   ...prev,
+      //   [title]: !prev[title]
+      // }))
+      if (item.path && !item.children) {
+        router.push(item.path)
+      } else if (item.children && item.children.length > 0) {
+        setOpenItem(prev => ({
+          ...prev,
+          [item.title]: !prev[item.title]
+        }))
+      }
     }
   }
 
@@ -40,9 +50,7 @@ const RecursiveListItems = ({
                 padding: `8px 10px 8px ${level * 20}px`
               }}
               onClick={() => {
-                if (item.children) {
-                  handleClick(item.title)
-                }
+                handleClick(item)
               }}
             >
               <ListItemIcon>

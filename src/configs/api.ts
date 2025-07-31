@@ -1,4 +1,5 @@
 export const BASE_URL = process.env.NEXT_PUBLIC_API_HOST || 'http://localhost:8080/api/v0'
+export const AI_URL = 'http://localhost:8000'
 
 export const CONFIG_API = {
   AUTH: {
@@ -17,5 +18,8 @@ export const CONFIG_API = {
   },
   ORDER: {
     INDEX: `${BASE_URL}/orders`
+  },
+  AI_RECOMMEND: {
+    INDEX: `${AI_URL}/recommendations`
   }
 }
