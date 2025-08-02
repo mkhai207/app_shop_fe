@@ -38,13 +38,13 @@ const CustomPagination = React.forwardRef((props: TProps, ref: Ref<any>) => {
     >
       {!isHideShowed && (
         <>
-          {rowLength > 0 ? (
+          {(rowLength || 0) > 0 ? (
             <Box>
               <span>{t('Đang hiển thị')}</span>
               <span style={{ fontWeight: 'bold' }}>{page === 1 ? page : 1 + pageSize} - </span>
-              <span style={{ fontWeight: 'bold' }}>{page * pageSize < rowLength ? page * pageSize : rowLength}</span>
+              <span style={{ fontWeight: 'bold' }}>{page * pageSize < (rowLength || 0) ? page * pageSize : (rowLength || 0)}</span>
               <span>{t('trên')}</span>
-              <span style={{ fontWeight: 'bold' }}>{rowLength}</span>
+              <span style={{ fontWeight: 'bold' }}>{rowLength || 0}</span>
             </Box>
           ) : (
             <Box></Box>
@@ -62,10 +62,10 @@ const CustomPagination = React.forwardRef((props: TProps, ref: Ref<any>) => {
               '& .MuiSelect-select.MuiSelect-select-MuiSelect-outlined.MuiInputBase-input.MuiOutlinedInput-input.MuiInputBase-inputSizeSmall':
                 { minWidth: 'unset !important', padding: '8.5px 12px 8.5px 24px !important' }
             }}
-            value={pageSize}
+            value={pageSize || 12}
             onChange={e => onChangePagination(1, +e.target.value)}
           >
-            {pageSizeOptions.map(opt => {
+            {(pageSizeOptions || []).map(opt => {
               return (
                 <MenuItem value={opt} key={opt}>
                   {opt}
@@ -77,8 +77,8 @@ const CustomPagination = React.forwardRef((props: TProps, ref: Ref<any>) => {
         {/* <StylePagination color='primary' {...rests} /> */}
         <StylePagination
           color='primary'
-          count={totalPages}
-          page={page}
+          count={totalPages || 1}
+          page={page || 1}
           onChange={(event, newPage) => onChangePagination(newPage, pageSize)}
           siblingCount={2}
           boundaryCount={1}

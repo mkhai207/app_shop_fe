@@ -8,5 +8,7 @@ export const ROUTE_CONFIG = {
   CHECKOUT: '/checkout',
   ORDER_SUCCESS: '/order/order-success',
   ORDER_HISTORY: '/order/order-history',
-  ORDER: '/order'
+  ORDER: '/order',
+  MANAGE_BRAND: '/manage-system/brand',
+  MANAGE_REVIEW: '/manage-system/review'
 }

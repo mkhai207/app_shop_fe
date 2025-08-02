@@ -308,7 +308,7 @@ const ManageProductPage: NextPage<TProps> = () => {
           />
         </Box>
         <Box>
-          <label style={{ marginRight: '0.5rem' }}>Danh mục:</label>
+                          <label style={{ marginRight: '0.5rem' }}>Phân loại:</label>
           <Select
             size='small'
             sx={{ width: 140, minWidth: 100 }}
@@ -535,7 +535,7 @@ const ManageProductPage: NextPage<TProps> = () => {
                 fullWidth
               />
               <TextField
-                label='Danh mục'
+                label='Phân loại'
                 value={editProduct.category || ''}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setEditProduct({ ...editProduct, category: e.target.value })
@@ -585,7 +585,7 @@ const ManageProductPage: NextPage<TProps> = () => {
               fullWidth
             />
             <TextField
-              label='Danh mục'
+              label='Phân loại'
               value={newProduct.category}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 setNewProduct({ ...newProduct, category: e.target.value })

@@ -5,12 +5,14 @@ import { configureStore } from '@reduxjs/toolkit'
 import user from 'src/stores/apps/user'
 import auth from 'src/stores/apps/auth'
 import cart from 'src/stores/apps/cart'
+import review from 'src/stores/apps/review'
 
 export const store = configureStore({
   reducer: {
     user,
     auth,
-    cart
+    cart,
+    review
   },
   middleware: getDefaultMiddleware =>
     getDefaultMiddleware({

@@ -36,7 +36,7 @@ const NavItem = () => {
       label: 'Sản phẩm',
       hasDropdown: true,
       menuName: 'sanpham',
-      items: ['Danh mục 1', 'Danh mục 2', 'Danh mục 3']
+      items: ['Phân loại 1', 'Phân loại 2', 'Phân loại 3']
     },
     {
       label: 'SALE UP TO 50%',

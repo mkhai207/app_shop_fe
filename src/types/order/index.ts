@@ -23,7 +23,7 @@ export type TCreateOrder = {
 export type TParams = {}
 
 export type TOrder = {
-  id: string
+  id: number
   created_at: string
   created_by: string
   updated_at: string
@@ -34,6 +34,6 @@ export type TOrder = {
   shipping_address: string
   status: string
   total_money: number
-  discount_id: string | null
-  user_id: string
+  discount_id: number
+  user_id: number
 }

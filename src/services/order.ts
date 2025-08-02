@@ -1,17 +1,29 @@
-import { CONFIG_API } from 'src/configs/api'
 import instanceAxios from 'src/helpers/axios'
-import { TParams } from 'src/types/order'
+import { CONFIG_API } from 'src/configs/api'
+import { TOrder } from 'src/types/order'
 
-export const getListOrders = async (data: { params: TParams; paramsSerializer?: (params: any) => string }) => {
+export type Order = TOrder
+
+export interface GetOrdersResponse {
+  status: string
+  statusCode: number
+  message: string
+  data: Order[]
+  error: null
+  meta: {
+    totalItems: number
+    totalPages: number
+    currentPage: number
+    limit: number
+  }
+}
+
+export const getOrders = async (): Promise<GetOrdersResponse> => {
   try {
-    const res = await instanceAxios.get(`${CONFIG_API.ORDER.INDEX}/get-orders`, {
-      params: data.params,
-      paramsSerializer: data.paramsSerializer
-    })
-
+    const res = await instanceAxios.get(CONFIG_API.ORDER.GET_ORDERS)
     return res.data
   } catch (error) {
-    return error
+    throw error
   }
 }
 

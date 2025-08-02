@@ -6,6 +6,10 @@ export const CONFIG_API = {
     INDEX: `${BASE_URL}/auth`,
     AUTH_ME: `${BASE_URL}/auth/me`
   },
+  USER: {
+    INDEX: `${BASE_URL}/users`,
+    GET_USERS: `${BASE_URL}/users/get-users`
+  },
   MANAGE_PRODUCT: {
     PRODUCT: {
       INDEX: `${BASE_URL}/products`,
@@ -17,7 +21,16 @@ export const CONFIG_API = {
     INDEX: `${BASE_URL}/carts`
   },
   ORDER: {
-    INDEX: `${BASE_URL}/orders`
+    INDEX: `${BASE_URL}/orders`,
+    GET_ORDERS: `${BASE_URL}/orders/get-orders`
+  },
+  DISCOUNT: {
+    INDEX: `${BASE_URL}/discounts`,
+    GET_DISCOUNTS: `${BASE_URL}/discounts/get-discounts`
+  },
+  CATEGORY: {
+    INDEX: `${BASE_URL}/categories`,
+    GET_CATEGORIES: `${BASE_URL}/categories/get-categories`
   },
   AI_RECOMMEND: {
     INDEX: `${AI_URL}/recommendations`

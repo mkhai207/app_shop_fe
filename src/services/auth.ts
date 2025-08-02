@@ -1,7 +1,7 @@
 import axios from 'axios'
 import { CONFIG_API } from 'src/configs/api'
 import instanceAxios from 'src/helpers/axios'
-import { TLoginAuth, TRegisterAuth } from 'src/types/auth'
+import { TLoginAuth, TRegisterAuth, TGetUsersResponse } from 'src/types/auth'
 
 export const loginAuth = async (data: TLoginAuth) => {
   const res = await axios.post(`${CONFIG_API.AUTH.INDEX}/login`, data)
@@ -26,5 +26,14 @@ export const updateAuthMe = async (data: TRegisterAuth) => {
     return res.data
   } catch (error) {
     return error
+  }
+}
+
+export const getUsers = async (): Promise<TGetUsersResponse> => {
+  try {
+    const res = await instanceAxios.get(CONFIG_API.USER.GET_USERS)
+    return res.data
+  } catch (error) {
+    throw error
   }
 }
