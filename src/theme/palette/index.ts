@@ -5,8 +5,8 @@ import { Skin } from 'src/types/layouts'
 const DefaultPalette = (mode: Palette['mode'], skin: Skin): Palette => {
   // ** Vars
   const whiteColor = '#FFF'
-  const lightColor = '47, 43, 61'
-  const darkColor = '208, 212, 241'
+  const lightColor = 'rgb(47, 43, 61)'
+  const darkColor = 'rgb(208, 212, 241)'
   const darkPaperBgColor = '#2F3349'
   const mainColor = mode === 'light' ? lightColor : darkColor
 
@@ -91,23 +91,23 @@ const DefaultPalette = (mode: Palette['mode'], skin: Skin): Palette => {
       A700: '#616161'
     },
     text: {
-      primary: `rgba(${mainColor}, 0.78)`,
-      secondary: `rgba(${mainColor}, 0.68)`,
-      disabled: `rgba(${mainColor}, 0.42)`
+      primary: mode === 'light' ? 'rgba(47, 43, 61, 0.78)' : 'rgba(208, 212, 241, 0.78)',
+      secondary: mode === 'light' ? 'rgba(47, 43, 61, 0.68)' : 'rgba(208, 212, 241, 0.68)',
+      disabled: mode === 'light' ? 'rgba(47, 43, 61, 0.42)' : 'rgba(208, 212, 241, 0.42)'
     },
-    divider: `rgba(${mainColor}, 0.16)`,
+    divider: mode === 'light' ? 'rgba(47, 43, 61, 0.16)' : 'rgba(208, 212, 241, 0.16)',
     background: {
       paper: mode === 'light' ? whiteColor : darkPaperBgColor,
       default: defaultBgColor()
     },
     action: {
-      active: `rgba(${mainColor}, 0.54)`,
-      hover: `rgba(${mainColor}, 0.04)`,
-      selected: `rgba(${mainColor}, 0.06)`,
+      active: mode === 'light' ? 'rgba(47, 43, 61, 0.54)' : 'rgba(208, 212, 241, 0.54)',
+      hover: mode === 'light' ? 'rgba(47, 43, 61, 0.04)' : 'rgba(208, 212, 241, 0.04)',
+      selected: mode === 'light' ? 'rgba(47, 43, 61, 0.06)' : 'rgba(208, 212, 241, 0.06)',
       selectedOpacity: 0.06,
-      disabled: `rgba(${mainColor}, 0.26)`,
-      disabledBackground: `rgba(${mainColor}, 0.12)`,
-      focus: `rgba(${mainColor}, 0.12)`
+      disabled: mode === 'light' ? 'rgba(47, 43, 61, 0.26)' : 'rgba(208, 212, 241, 0.26)',
+      disabledBackground: mode === 'light' ? 'rgba(47, 43, 61, 0.12)' : 'rgba(208, 212, 241, 0.12)',
+      focus: mode === 'light' ? 'rgba(47, 43, 61, 0.12)' : 'rgba(208, 212, 241, 0.12)'
     }
   } as Palette
 }

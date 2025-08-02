@@ -47,7 +47,37 @@ export const searchProducts = async (data: {
 
 export const getProductRecommend = async (id: string) => {
   try {
-    const res = await instanceAxios.get(`${CONFIG_API.AI_RECOMMEND.INDEX}/${id}`)
+    const res = await axios.get(`${CONFIG_API.AI_RECOMMEND.INDEX}/${id}`)
+
+    return res.data
+  } catch (error) {
+    return error
+  }
+}
+
+export const getSimilarProducts = async (productId: string) => {
+  try {
+    const res = await axios.get(`${CONFIG_API.AI_RECOMMEND.GET_SIMILAR_PRODUCTS}/${productId}`)
+
+    return res.data
+  } catch (error) {
+    return error
+  }
+}
+
+export const createProduct = async (productData: any) => {
+  try {
+    const res = await instanceAxios.post(`${CONFIG_API.PRODUCT.INDEX}/create-product`, productData)
+
+    return res.data
+  } catch (error) {
+    return error
+  }
+}
+
+export const deleteProduct = async (productId: string) => {
+  try {
+    const res = await instanceAxios.delete(`${CONFIG_API.PRODUCT.INDEX}/delete/${productId}`)
 
     return res.data
   } catch (error) {

@@ -59,5 +59,8 @@
   "price-desc": "Giá: Giảm dần",
   "name-asc": "Tên: A-Z",
   "no-products-found": "Không có sản phẩm",
-  "admin-dashboard": "Trang quản trị"
+  "admin-dashboard": "Trang quản trị",
+  "best-seller": "Sản phẩm bán chạy",
+  "you-may-like": "Có thể bạn sẽ thích",
+  "similar-products": "Sản phẩm tương tự"
 }

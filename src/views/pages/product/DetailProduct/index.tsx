@@ -22,7 +22,7 @@ import toast from 'react-hot-toast'
 import { useTranslation } from 'react-i18next'
 import IconifyIcon from 'src/components/Icon'
 import Spinner from 'src/components/spinner'
-import { getDetailsProductPublic } from 'src/services/product'
+import { getDetailsProductPublic, getSimilarProducts } from 'src/services/product'
 import { TProductDetail } from 'src/types/product'
 import { parseSlider } from 'src/utils/parseSlider'
 import TabPanel from '../components/TabPanel'
@@ -30,12 +30,16 @@ import { useDispatch, useSelector } from 'react-redux'
 import { addToCartAsync } from 'src/stores/apps/cart/action'
 import { AppDispatch, RootState } from 'src/stores'
 import { resetCart } from 'src/stores/apps/cart'
+import CardProduct from 'src/components/card-product/CardProduct'
+import { TProduct } from 'src/types/product'
+import { useAuth } from 'src/hooks/useAuth'
 
 type TProps = {}
 
 const DetailProductPage: NextPage<TProps> = () => {
   const theme = useTheme()
   const { t } = useTranslation()
+  const { user } = useAuth()
   const [selectedImage, setSelectedImage] = useState(0)
   const [quantity, setQuantity] = useState(1)
   const [selectedSize, setSelectedSize] = useState('')
@@ -45,8 +49,18 @@ const DetailProductPage: NextPage<TProps> = () => {
   const router = useRouter()
   const dispatch: AppDispatch = useDispatch()
   const { isLoading, isSuccess, isError, message } = useSelector((state: RootState) => state.cart)
-
   const [tabValue, setTabValue] = useState(0)
+  const [productSimilar, setProductSimilar] = useState<{
+    data: any[]
+    total: number
+    totalPages: number
+    currentPage: number
+  }>({
+    data: [],
+    total: 0,
+    totalPages: 0,
+    currentPage: 1
+  })
 
   const handleTabChange = (event: SyntheticEvent, newValue: number) => {
     setTabValue(newValue)
@@ -57,19 +71,12 @@ const DetailProductPage: NextPage<TProps> = () => {
       setLoading(true)
 
       const response = await getDetailsProductPublic(router?.query?.productId as string)
-      console.log('API Response:', response)
 
       if (response.status === 'success') {
-        console.log('data', response?.data)
         setProductDetail(response?.data)
-
-        toast.success('Tải chi tiết sản phẩm thành công!')
-      } else {
-        toast.error(response.message || 'Có lỗi xảy ra khi tải chi tiết sản phẩm')
       }
     } catch (error: any) {
       console.error('Error fetching products:', error)
-      toast.error(error?.message || 'Có lỗi xảy ra khi tải sản phẩm')
     } finally {
       setLoading(false)
     }
@@ -77,6 +84,27 @@ const DetailProductPage: NextPage<TProps> = () => {
 
   const handleQuantityChange = (change: number) => {
     setQuantity(Math.max(1, quantity + change))
+  }
+
+  const fetchGetSimilarProduct = async () => {
+    try {
+      setLoading(true)
+
+      const response = await getSimilarProducts(productDetail?.id || '')
+
+      if (response.status === 'success') {
+        setProductSimilar({
+          data: response.data || [],
+          total: response.data.total || 0,
+          totalPages: response.data.totalPages || 0,
+          currentPage: response.data.currentPage || 1
+        })
+      }
+    } catch (error: any) {
+      console.error('Error fetching products:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleAddToCart = () => {
@@ -117,6 +145,12 @@ const DetailProductPage: NextPage<TProps> = () => {
     }
     dispatch(resetCart())
   }, [isSuccess, isError, message])
+
+  useEffect(() => {
+    if (productDetail?.id) {
+      fetchGetSimilarProduct()
+    }
+  }, [])
 
   return (
     <>
@@ -490,6 +524,24 @@ const DetailProductPage: NextPage<TProps> = () => {
             </TabPanel>
           </Paper>
         </Container>
+
+        {user && user?.id && (
+          <Container maxWidth='lg' style={{ padding: '20px' }}>
+            <Box textAlign='center' mb={7}>
+              <Typography variant='h4' component='h1' fontWeight='bold' mb={1}>
+                {t('similar-products')}
+              </Typography>
+            </Box>
+
+            <Grid container spacing={3}>
+              {productSimilar.data.map((product: TProduct) => (
+                <Grid item xs={12} sm={6} md={4} lg={3} key={product.id}>
+                  <CardProduct item={product} />
+                </Grid>
+              ))}
+            </Grid>
+          </Container>
+        )}
       </Container>
     </>
   )

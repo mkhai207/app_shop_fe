@@ -19,7 +19,20 @@ export const CONFIG_API = {
   ORDER: {
     INDEX: `${BASE_URL}/orders`
   },
+  CATEGORY: {
+    INDEX: `${BASE_URL}/categories`
+  },
+  BRAND: {
+    INDEX: `${BASE_URL}/brands`
+  },
+  PRODUCT: {
+    INDEX: `${BASE_URL}/products`
+  },
+  FILE: {
+    UPLOAD: `${BASE_URL}/upload`
+  },
   AI_RECOMMEND: {
-    INDEX: `${AI_URL}/recommendations`
+    INDEX: `${AI_URL}/recommendations`,
+    GET_SIMILAR_PRODUCTS: `${AI_URL}/recommendations_by_product`
   }
 }

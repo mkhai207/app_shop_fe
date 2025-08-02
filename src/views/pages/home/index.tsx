@@ -11,8 +11,8 @@ import { PAGE_SIZE_OPTION } from 'src/configs/gridConfig'
 import { ROUTE_CONFIG } from 'src/configs/route'
 import { useAuth } from 'src/hooks/useAuth'
 import { getAllProductsPublic, getProductRecommend } from 'src/services/product'
-import { TProduct } from 'src/types/product'
 import CardProduct from '../../../components/card-product/CardProduct'
+import { TProduct } from 'src/types/product'
 
 type TProps = {}
 
@@ -94,10 +94,11 @@ const HomePage: NextPage<TProps> = () => {
       setLoading(true)
 
       const response = await getProductRecommend(user?.id.toString() || '')
+      console.log('response', response)
 
       if (response.status === 'success') {
         setProductFavourite({
-          data: response.data.products || [],
+          data: response.data || [],
           total: response.data.total || 0,
           totalPages: response.data.totalPages || 0,
           currentPage: response.data.currentPage || 1
@@ -116,6 +117,9 @@ const HomePage: NextPage<TProps> = () => {
 
   useEffect(() => {
     handleGetListNewProducts()
+  }, [])
+
+  useEffect(() => {
     handleGetProductRecommend()
   }, [])
 
@@ -160,7 +164,7 @@ const HomePage: NextPage<TProps> = () => {
           {/* Header */}
           <Box textAlign='center' mb={4}>
             <Typography variant='h4' component='h1' fontWeight='bold' mb={1}>
-              {t('new-products')}
+              {t('best-seller')}
             </Typography>
             <Typography variant='body1' color='text.secondary' fontStyle='italic'>
               {t('top-trending')}
@@ -255,29 +259,24 @@ const HomePage: NextPage<TProps> = () => {
           </Box>
         </Container>
 
-        <Container maxWidth='lg' style={{ padding: '20px' }}>
-          <Typography variant='h4' align='center' gutterBottom>
-            CÓ THỂ BAN SẼ THÍCH
-          </Typography>
-          <Grid container spacing={3}>
-            {productFavourite.data.map(product => (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={product.id}>
-                <CardProduct item={product} />
-              </Grid>
-            ))}
-          </Grid>
-          <Box sx={{ mt: 4, mb: 4 }}>
-            <CustomPagination
-              onChangePagination={handleOnchangePagination}
-              pageSizeOptions={PAGE_SIZE_OPTION}
-              pageSize={pageSize}
-              totalPages={productFavourite?.totalPages}
-              page={page}
-              rowLength={10}
-              isHideShowed
-            />
-          </Box>
-        </Container>
+        {/* You may like */}
+        {user && user?.id && (
+          <Container maxWidth='lg' style={{ padding: '20px' }}>
+            <Box textAlign='center' mb={7}>
+              <Typography variant='h4' component='h1' fontWeight='bold' mb={1}>
+                {t('you-may-like')}
+              </Typography>
+            </Box>
+
+            <Grid container spacing={3}>
+              {productFavourite.data.map((product: TProduct) => (
+                <Grid item xs={12} sm={6} md={4} lg={3} key={product.id}>
+                  <CardProduct item={product} />
+                </Grid>
+              ))}
+            </Grid>
+          </Container>
+        )}
       </Box>
     </>
   )
