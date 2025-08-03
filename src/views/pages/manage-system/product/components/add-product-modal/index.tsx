@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
+import * as yup from 'yup'
 import {
   Box,
   Button,
@@ -65,6 +66,50 @@ const getSafeColor = (color: string) => {
   return isValidHexColor(trimmedColor) ? trimmedColor : '#000000'
 }
 
+// Yup validation schema
+const productSchema = yup.object().shape({
+  name: yup.string().required('Tên sản phẩm không được để trống'),
+  price: yup
+    .string()
+    .required('Giá sản phẩm không được để trống')
+    .test('is-positive', 'Giá sản phẩm phải lớn hơn 0', value => {
+      const num = parseInt(value || '0')
+
+      return num > 0
+    }),
+  gender: yup.string().required('Vui lòng chọn giới tính'),
+  category_id: yup.string().required('Vui lòng chọn danh mục'),
+  brand_id: yup.string().required('Vui lòng chọn thương hiệu'),
+  thumbnail: yup.string().required('Vui lòng chọn ảnh đại diện'),
+  description: yup.string().required('Mô tả sản phẩm không được để trống'),
+  sold: yup.string().required('Số lượng đã bán không được để trống'),
+  status: yup.boolean(),
+  slider: yup.string(),
+  variants: yup
+    .array()
+    .of(
+      yup.object().shape({
+        hex_code: yup.string().required('Mã màu không được để trống'),
+        inventory: yup.array().of(
+          yup.object().shape({
+            size: yup.string().required('Size không được để trống'),
+            quantity: yup.number().min(0, 'Số lượng phải >= 0')
+          })
+        )
+      })
+    )
+    .test('has-valid-variant', 'Vui lòng thêm ít nhất một màu và size với số lượng > 0', function (value) {
+      if (!value || value.length === 0) return false
+
+      return value.some(variant => {
+        if (!variant.hex_code || variant.hex_code.trim() === '') return false
+        if (!variant.inventory || variant.inventory.length === 0) return false
+
+        return variant.inventory.some(item => (item.quantity || 0) > 0)
+      })
+    })
+})
+
 const AddProductModal: React.FC<TProps> = ({ open, onClose }) => {
   const [product, setProduct] = useState({
     name: '',
@@ -94,6 +139,17 @@ const AddProductModal: React.FC<TProps> = ({ open, onClose }) => {
   const [categories, setCategories] = useState<TCategory[]>([])
   const [brands, setBrands] = useState<TBrand[]>([])
   const [loading, setLoading] = useState(false)
+  const [errors, setErrors] = useState<{
+    name?: string
+    price?: string
+    gender?: string
+    category_id?: string
+    brand_id?: string
+    thumbnail?: string
+    description?: string
+    sold?: string
+    variants?: string
+  }>({})
 
   const fetchGetCategories = async () => {
     const response = await getCategories()
@@ -123,17 +179,41 @@ const AddProductModal: React.FC<TProps> = ({ open, onClose }) => {
     ])
   }
 
+  const validateForm = async () => {
+    try {
+      const formData = {
+        ...product,
+        variants
+      }
+
+      await productSchema.validate(formData, { abortEarly: false })
+      setErrors({})
+
+      return true
+    } catch (validationError: any) {
+      const newErrors: typeof errors = {}
+
+      if (validationError.inner) {
+        validationError.inner.forEach((error: any) => {
+          newErrors[error.path as keyof typeof errors] = error.message
+        })
+      }
+
+      setErrors(newErrors)
+
+      return false
+    }
+  }
+
   const handleAddProduct = async () => {
     try {
       setLoading(true)
 
-      // Validate required fields
-      if (!product.name || !product.description || !product.price || !product.category_id || !product.brand_id) {
-        return
-      }
+      // Validate form
+      const isValid = await validateForm()
+      if (!isValid) {
+        setLoading(false)
 
-      // Validate thumbnail
-      if (!product.thumbnail) {
         return
       }
 
@@ -151,6 +231,27 @@ const AddProductModal: React.FC<TProps> = ({ open, onClose }) => {
       if (response.status === 'success') {
         onClose()
         setLoading(false)
+
+        // Reset form
+        setProduct({
+          name: '',
+          description: '',
+          price: '',
+          gender: '',
+          sold: '',
+          status: true,
+          thumbnail: '',
+          slider: '',
+          category_id: '',
+          brand_id: ''
+        })
+        setVariants([
+          {
+            hex_code: '#000000',
+            inventory: []
+          }
+        ])
+        setErrors({})
       }
     } catch (error) {
       console.error('Error creating product:', error)
@@ -229,8 +330,15 @@ const AddProductModal: React.FC<TProps> = ({ open, onClose }) => {
                     fullWidth
                     required
                     value={product.name}
-                    onChange={e => setProduct({ ...product, name: e.target.value })}
+                    onChange={e => {
+                      setProduct({ ...product, name: e.target.value })
+                      if (errors.name) {
+                        setErrors({ ...errors, name: undefined })
+                      }
+                    }}
                     placeholder='Áo tay lỡ'
+                    error={!!errors.name}
+                    helperText={errors.name}
                   />
                 </Grid>
 
@@ -242,7 +350,14 @@ const AddProductModal: React.FC<TProps> = ({ open, onClose }) => {
                     required
                     InputProps={{ inputProps: { min: 0 } }}
                     value={product.price}
-                    onChange={e => setProduct({ ...product, price: e.target.value })}
+                    onChange={e => {
+                      setProduct({ ...product, price: e.target.value })
+                      if (errors.price) {
+                        setErrors({ ...errors, price: undefined })
+                      }
+                    }}
+                    error={!!errors.price}
+                    helperText={errors.price}
                   />
                 </Grid>
 
@@ -254,32 +369,54 @@ const AddProductModal: React.FC<TProps> = ({ open, onClose }) => {
                     multiline
                     rows={4}
                     value={product.description}
-                    onChange={e => setProduct({ ...product, description: e.target.value })}
+                    onChange={e => {
+                      setProduct({ ...product, description: e.target.value })
+                      if (errors.description) {
+                        setErrors({ ...errors, description: undefined })
+                      }
+                    }}
+                    error={!!errors.description}
+                    helperText={errors.description}
                   />
                 </Grid>
 
                 <Grid item xs={12} md={4}>
-                  <FormControl fullWidth required>
+                  <FormControl fullWidth required error={!!errors.gender}>
                     <InputLabel>Giới tính</InputLabel>
                     <Select
                       label='Giới tính'
                       value={product.gender}
-                      onChange={e => setProduct({ ...product, gender: e.target.value })}
+                      onChange={e => {
+                        setProduct({ ...product, gender: e.target.value })
+                        if (errors.gender) {
+                          setErrors({ ...errors, gender: undefined })
+                        }
+                      }}
                     >
                       <MenuItem value='MALE'>Nam</MenuItem>
                       <MenuItem value='FEMALE'>Nữ</MenuItem>
                       <MenuItem value='UNISEX'>Unisex</MenuItem>
                     </Select>
+                    {errors.gender && (
+                      <Typography variant='caption' color='error' sx={{ mt: 0.5 }}>
+                        {errors.gender}
+                      </Typography>
+                    )}
                   </FormControl>
                 </Grid>
 
                 <Grid item xs={12} md={4}>
-                  <FormControl fullWidth required>
+                  <FormControl fullWidth required error={!!errors.category_id}>
                     <InputLabel>Danh mục</InputLabel>
                     <Select
                       label='Danh mục'
                       value={product.category_id}
-                      onChange={e => setProduct({ ...product, category_id: e.target.value })}
+                      onChange={e => {
+                        setProduct({ ...product, category_id: e.target.value })
+                        if (errors.category_id) {
+                          setErrors({ ...errors, category_id: undefined })
+                        }
+                      }}
                     >
                       {categories.map(c => (
                         <MenuItem key={c.id} value={c.id}>
@@ -287,16 +424,26 @@ const AddProductModal: React.FC<TProps> = ({ open, onClose }) => {
                         </MenuItem>
                       ))}
                     </Select>
+                    {errors.category_id && (
+                      <Typography variant='caption' color='error' sx={{ mt: 0.5 }}>
+                        {errors.category_id}
+                      </Typography>
+                    )}
                   </FormControl>
                 </Grid>
 
                 <Grid item xs={12} md={4}>
-                  <FormControl fullWidth required>
+                  <FormControl fullWidth required error={!!errors.brand_id}>
                     <InputLabel>Thương hiệu</InputLabel>
                     <Select
                       label='Thương hiệu'
                       value={product.brand_id}
-                      onChange={e => setProduct({ ...product, brand_id: e.target.value })}
+                      onChange={e => {
+                        setProduct({ ...product, brand_id: e.target.value })
+                        if (errors.brand_id) {
+                          setErrors({ ...errors, brand_id: undefined })
+                        }
+                      }}
                     >
                       {brands.map(b => (
                         <MenuItem key={b.id} value={b.id}>
@@ -304,6 +451,11 @@ const AddProductModal: React.FC<TProps> = ({ open, onClose }) => {
                         </MenuItem>
                       ))}
                     </Select>
+                    {errors.brand_id && (
+                      <Typography variant='caption' color='error' sx={{ mt: 0.5 }}>
+                        {errors.brand_id}
+                      </Typography>
+                    )}
                   </FormControl>
                 </Grid>
 
@@ -312,6 +464,11 @@ const AddProductModal: React.FC<TProps> = ({ open, onClose }) => {
                     <Typography variant='subtitle2' sx={{ fontWeight: 'bold' }}>
                       Ảnh đại diện
                     </Typography>
+                    {errors.thumbnail && (
+                      <Typography variant='caption' color='error'>
+                        {errors.thumbnail}
+                      </Typography>
+                    )}
 
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                       <Button
@@ -478,7 +635,14 @@ const AddProductModal: React.FC<TProps> = ({ open, onClose }) => {
                     required
                     InputProps={{ inputProps: { min: 0 } }}
                     value={product.sold}
-                    onChange={e => setProduct({ ...product, sold: e.target.value })}
+                    onChange={e => {
+                      setProduct({ ...product, sold: e.target.value })
+                      if (errors.sold) {
+                        setErrors({ ...errors, sold: undefined })
+                      }
+                    }}
+                    error={!!errors.sold}
+                    helperText={errors.sold}
                   />
                 </Grid>
 
@@ -505,6 +669,11 @@ const AddProductModal: React.FC<TProps> = ({ open, onClose }) => {
                   Thêm màu mới
                 </Button>
               </Box>
+              {errors.variants && (
+                <Typography variant='caption' color='error' sx={{ display: 'block', mb: 2 }}>
+                  {errors.variants}
+                </Typography>
+              )}
 
               {variants.map((variant, index) => (
                 <Card key={index} sx={{ mb: 3, border: '1px solid #e0e0e0', borderRadius: 2 }}>
