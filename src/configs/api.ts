@@ -34,6 +34,12 @@ export const CONFIG_API = {
   FILE: {
     UPLOAD: `${BASE_URL}/upload`
   },
+  DISCOUNT: {
+    INDEX: `${BASE_URL}/discounts`
+  },
+  REVIEW: {
+    INDEX: `${BASE_URL}/reviews`
+  },
   AI_RECOMMEND: {
     INDEX: `${AI_URL}/recommendations`,
     GET_SIMILAR_PRODUCTS: `${AI_URL}/recommendations_by_product`

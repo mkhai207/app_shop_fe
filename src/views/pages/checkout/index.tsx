@@ -6,12 +6,12 @@ import {
   Container,
   Divider,
   Grid,
-  InputAdornment,
   MenuItem,
   Select,
   TextField,
   Typography,
-  Alert
+  Alert,
+  Chip
 } from '@mui/material'
 import { NextPage } from 'next'
 import { useRouter } from 'next/router'
@@ -24,6 +24,7 @@ import { ROUTE_CONFIG } from 'src/configs/route'
 import { useAuth } from 'src/hooks/useAuth'
 import { deleteCartItems } from 'src/services/cart'
 import { createOrder } from 'src/services/checkout'
+import { getDiscountByCode, TDiscount } from 'src/services/discount'
 import { RootState } from 'src/stores'
 import { TCreateOrder, TCreateOrderForm } from 'src/types/order'
 import * as yup from 'yup'
@@ -41,8 +42,6 @@ interface BuyNowItem {
   color_name: string
   size_name: string
   product_variant_id: string
-
-  // Thêm trường này
 }
 
 const CheckoutPage: NextPage<TProps> = () => {
@@ -56,6 +55,16 @@ const CheckoutPage: NextPage<TProps> = () => {
   const [buyNowItems, setBuyNowItems] = useState<BuyNowItem[]>([])
   const [isBuyNowMode, setIsBuyNowMode] = useState(false)
 
+  // Discount states
+  const [discountCode, setDiscountCode] = useState('')
+  const [appliedDiscount, setAppliedDiscount] = useState<{
+    code: string
+    discountAmount: number
+    discountType: 'percentage' | 'fixed'
+  } | null>(null)
+  const [discountLoading, setDiscountLoading] = useState(false)
+  const [discountError, setDiscountError] = useState('')
+
   useEffect(() => {
     const buyNowData = localStorage.getItem('buyNowItems')
     if (buyNowData) {
@@ -64,7 +73,6 @@ const CheckoutPage: NextPage<TProps> = () => {
         if (parsedData && parsedData.length > 0) {
           setBuyNowItems(parsedData)
           setIsBuyNowMode(true)
-
           localStorage.removeItem('buyNowItems')
         }
       } catch (error) {
@@ -73,6 +81,7 @@ const CheckoutPage: NextPage<TProps> = () => {
     }
   }, [])
 
+  // Tính toán order total dựa trên mode
   const getOrderTotal = () => {
     if (isBuyNowMode) {
       return buyNowItems.reduce((total, item) => total + item.product_price * item.quantity, 0)
@@ -82,7 +91,23 @@ const CheckoutPage: NextPage<TProps> = () => {
   }
 
   const orderTotal = getOrderTotal()
-  const shippingFee = orderTotal > 500000 ? 0 : 30000
+  const shippingFee = orderTotal >= 500000 ? 0 : 30000
+
+  // Tính toán discount
+  const getDiscountAmount = () => {
+    if (!appliedDiscount) {
+      return 0
+    }
+
+    if (appliedDiscount.discountType === 'percentage') {
+      return (orderTotal * appliedDiscount.discountAmount) / 100
+    } else {
+      return appliedDiscount.discountAmount
+    }
+  }
+
+  const discountAmount = getDiscountAmount()
+  const finalTotal = orderTotal + shippingFee - discountAmount
 
   const schema = yup.object({
     paymentMethod: yup.string().required(t('payment-method-required')),
@@ -128,13 +153,83 @@ const CheckoutPage: NextPage<TProps> = () => {
     resolver: yupResolver(schema)
   })
 
+  // Handle discount code application
+  const handleApplyDiscount = async () => {
+    if (!discountCode.trim()) {
+      setDiscountError('Vui lòng nhập mã giảm giá')
+
+      return
+    }
+
+    setDiscountLoading(true)
+    setDiscountError('')
+
+    try {
+      const response = await getDiscountByCode(discountCode.trim())
+
+      if (response?.status === 'success' && response?.data) {
+        const discount: TDiscount = response.data
+
+        // Kiểm tra thời gian hiệu lực
+        const now = new Date()
+        const validFrom = new Date(discount.valid_from)
+        const validUntil = new Date(discount.valid_until)
+
+        if (now < validFrom || now > validUntil) {
+          setDiscountError('Mã giảm giá đã hết hạn hoặc chưa thể sử dụng')
+
+          return
+        }
+
+        // Kiểm tra giá trị đơn hàng tối thiểu
+        if (discount.minimum_order_value > orderTotal) {
+          setDiscountError(`Đơn hàng phải có giá trị tối thiểu ${discount.minimum_order_value.toLocaleString()}VNĐ`)
+
+          return
+        }
+
+        // Tính toán số tiền giảm giá
+        let discountAmount = 0
+        if (discount.discount_type === 'PERCENTAGE') {
+          discountAmount = (orderTotal * parseFloat(discount.discount_value)) / 100
+
+          if (discount.max_discount_amount && discountAmount > discount.max_discount_amount) {
+            discountAmount = discount.max_discount_amount
+          }
+        } else {
+          discountAmount = parseFloat(discount.discount_value)
+        }
+
+        setAppliedDiscount({
+          code: discount.code,
+          discountAmount: discountAmount,
+          discountType: discount.discount_type === 'PERCENTAGE' ? 'percentage' : 'fixed'
+        })
+
+        setDiscountCode('')
+      } else {
+        setDiscountError('Mã giảm giá không hợp lệ')
+      }
+    } catch (error) {
+      console.error('Error applying discount:', error)
+      setDiscountError('Có lỗi xảy ra khi áp dụng mã giảm giá')
+    } finally {
+      setDiscountLoading(false)
+    }
+  }
+
+  // Handle discount code removal
+  const handleRemoveDiscount = () => {
+    setAppliedDiscount(null)
+    setDiscountError('')
+  }
+
   const onSubmit = (data: TCreateOrderForm) => {
     let orderDetails = []
 
     if (isBuyNowMode) {
       orderDetails = buyNowItems.map(item => ({
         product_variant_id: item.product_variant_id,
-
         quantity: item.quantity
       }))
     } else {
@@ -152,7 +247,7 @@ const CheckoutPage: NextPage<TProps> = () => {
     const orderData = {
       ...data,
       status,
-      discount_code: '',
+      discount_code: appliedDiscount?.code || '',
       orderDetails
     }
     console.log('orderData', orderData)
@@ -168,7 +263,6 @@ const CheckoutPage: NextPage<TProps> = () => {
     }
   }, [orderSuccess, isBuyNowMode])
 
-  // Kiểm tra nếu không có items nào
   if (!isBuyNowMode && items.length === 0) {
     return (
       <Container maxWidth='lg' sx={{ p: 2, mb: 10 }}>
@@ -309,8 +403,7 @@ const CheckoutPage: NextPage<TProps> = () => {
                     </Typography>
                   </Box>
                 ))
-              ) : // Hiển thị cart items
-              items && items.length > 0 ? (
+              ) : items && items.length > 0 ? (
                 items.map(item => (
                   <Box key={item.id} sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                     <Box sx={{ position: 'relative' }}>
@@ -353,31 +446,56 @@ const CheckoutPage: NextPage<TProps> = () => {
                 <Typography variant='body2'>Không có sản phẩm trong giỏ hàng</Typography>
               )}
 
-              <Box sx={{ display: 'flex', mb: 3 }}>
-                <TextField
-                  label='Mã giảm giá'
-                  fullWidth
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position='end'>
-                        <Button variant='contained' color='inherit'>
-                          Sử dụng
-                        </Button>
-                      </InputAdornment>
-                    )
-                  }}
-                />
+              {/* Discount Code Section */}
+              <Box sx={{ mb: 3 }}>
+                {appliedDiscount ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                    <Chip
+                      label={`Mã giảm giá: ${appliedDiscount.code}`}
+                      color='success'
+                      onDelete={handleRemoveDiscount}
+                    />
+                  </Box>
+                ) : (
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <TextField
+                      label='Mã giảm giá'
+                      value={discountCode}
+                      onChange={e => setDiscountCode(e.target.value)}
+                      error={!!discountError}
+                      helperText={discountError}
+                      fullWidth
+                      size='small'
+                      disabled={discountLoading}
+                    />
+                    <Button
+                      variant='contained'
+                      onClick={handleApplyDiscount}
+                      disabled={discountLoading || !discountCode.trim()}
+                      sx={{ minWidth: 'auto', px: 2 }}
+                    >
+                      {discountLoading ? 'Đang áp dụng...' : 'Áp dụng'}
+                    </Button>
+                  </Box>
+                )}
               </Box>
 
+              {/* Price Summary */}
               <Box sx={{ mb: 3 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                   <Typography>Tạm tính</Typography>
                   <Typography>{orderTotal.toLocaleString()}VNĐ</Typography>
                 </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                   <Typography>Phí vận chuyển</Typography>
                   <Typography>{shippingFee.toLocaleString()}VNĐ</Typography>
                 </Box>
+                {appliedDiscount && (
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography color='success.main'>Giảm giá</Typography>
+                    <Typography color='success.main'>-{discountAmount.toLocaleString()}VNĐ</Typography>
+                  </Box>
+                )}
               </Box>
 
               <Divider sx={{ mb: 2 }} />
@@ -388,7 +506,7 @@ const CheckoutPage: NextPage<TProps> = () => {
                   <Typography variant='caption' color='text.secondary'>
                     VND{' '}
                   </Typography>
-                  <Typography variant='h6'>{(orderTotal + shippingFee).toLocaleString()}VNĐ</Typography>
+                  <Typography variant='h6'>{finalTotal.toLocaleString()}VNĐ</Typography>
                 </Box>
               </Box>
             </Card>

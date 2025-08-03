@@ -244,18 +244,18 @@ const CartPage: NextPage<TProps> = () => {
                 Phí vận chuyển sẽ được tính ở trang thanh toán.
               </Typography>
               <Typography variant='body2' color='text.secondary' sx={{ mb: 3 }}>
-                Freeship toàn quốc cho đơn hàng từ 500k. Bạn cũng có thể nhập mã giảm giá ở ô phía dưới
+                Freeship toàn quốc cho đơn hàng từ 500k.
               </Typography>
 
               {/* Promo Code */}
-              <TextField
+              {/* <TextField
                 fullWidth
                 placeholder='Nhập mã khuyến mãi (nếu có)'
                 variant='outlined'
                 value={promoCode}
                 onChange={e => setPromoCode(e.target.value)}
                 sx={{ mb: 3 }}
-              />
+              /> */}
 
               {/* Checkout Button */}
               <Button

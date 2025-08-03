@@ -50,7 +50,6 @@ const BuyNowModal = ({ open, onClose, productId, productName, productPrice, prod
   const [variants, setVariants] = useState<TVariant[]>([])
   const router = useRouter()
 
-  // Fetch product detail when modal opens
   useEffect(() => {
     if (open && productId) {
       fetchProductDetail()
@@ -62,7 +61,6 @@ const BuyNowModal = ({ open, onClose, productId, productName, productPrice, prod
     try {
       const response = await getDetailsProductPublic(productId)
       if (response.status === 'success') {
-        // Transform variants data
         const transformedVariants: TVariant[] = []
         if (response.data.variants) {
           const colorMap = new Map()
@@ -90,7 +88,6 @@ const BuyNowModal = ({ open, onClose, productId, productName, productPrice, prod
 
         setVariants(transformedVariants)
 
-        // Set first color as default if available
         if (transformedVariants.length > 0) {
           setSelectedColor(transformedVariants[0].colorId)
         }
@@ -141,11 +138,9 @@ const BuyNowModal = ({ open, onClose, productId, productName, productPrice, prod
     }
 
     try {
-      // Call API để lấy variant ID
       const variantResponse = await getVariantId(productId, selectedColor, selectedSize)
 
       if (variantResponse.status === 'success' && variantResponse.data) {
-        // Tạo data cho buy now với variant ID thực sự
         const buyNowData = {
           product_id: productId,
           color_id: selectedColor,
@@ -157,25 +152,18 @@ const BuyNowModal = ({ open, onClose, productId, productName, productPrice, prod
           color_name: variants.find(v => v.colorId === selectedColor)?.color_name,
           size_name: variants.find(v => v.colorId === selectedColor)?.inventory.find(i => i.sizeId === selectedSize)
             ?.size,
-          product_variant_id: variantResponse.data.variantId // Lưu variant ID thực sự
+          product_variant_id: variantResponse.data.variantId
         }
-
-        // Lưu vào localStorage
         localStorage.setItem('buyNowItems', JSON.stringify([buyNowData]))
 
-        // Chuyển sang checkout
         router.push(ROUTE_CONFIG.CHECKOUT)
 
         onClose()
       } else {
         console.error('Error getting variant ID:', variantResponse)
-
-        // Có thể hiển thị thông báo lỗi cho user
       }
     } catch (error) {
       console.error('Error in handleBuyNow:', error)
-
-      // Có thể hiển thị thông báo lỗi cho user
     }
   }
 

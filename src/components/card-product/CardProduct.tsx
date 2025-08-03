@@ -26,6 +26,7 @@ interface TCardProduct {
 }
 
 const CardProduct = (props: TCardProduct) => {
+  console.log('props', props.item)
   const item = props?.item
   const { t } = useTranslation()
   const theme = useTheme()
