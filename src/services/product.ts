@@ -84,3 +84,13 @@ export const deleteProduct = async (productId: string) => {
     return error
   }
 }
+
+export const updateProduct = async (productId: string, updateData: any) => {
+  try {
+    const res = await instanceAxios.put(`${CONFIG_API.PRODUCT.INDEX}/update/${productId}`, updateData)
+
+    return res.data
+  } catch (error) {
+    return error
+  }
+}

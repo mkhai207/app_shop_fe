@@ -5,6 +5,10 @@ import {
   Card,
   CardContent,
   Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   FormControl,
   FormControlLabel,
   Grid,
@@ -21,7 +25,7 @@ import {
 import AddIcon from '@mui/icons-material/Add'
 import CloudUploadIcon from '@mui/icons-material/CloudUpload'
 import CloseIcon from '@mui/icons-material/Close'
-import CustomModal from 'src/components/custom-modal'
+
 import { TBrand, TCategory } from 'src/types/product'
 import { getCategories } from 'src/services/category'
 import { getBrands } from 'src/services/brand'
@@ -76,18 +80,14 @@ const AddProductModal: React.FC<TProps> = ({ open, onClose }) => {
   })
 
   // Sử dụng hook upload ảnh
-  const { uploadFile, uploadMultipleFiles, isUploading, uploadProgress, error, reset } = useFileUpload()
+  const { uploadFile, uploadMultipleFiles, isUploading, uploadProgress, error } = useFileUpload()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const sliderFileInputRef = useRef<HTMLInputElement>(null)
 
   const [variants, setVariants] = useState<TVariant[]>([
     {
       hex_code: '#000000',
-      inventory: [
-        { size: 'S', quantity: 0 },
-        { size: 'M', quantity: 0 },
-        { size: 'L', quantity: 0 }
-      ]
+      inventory: []
     }
   ])
 
@@ -126,6 +126,7 @@ const AddProductModal: React.FC<TProps> = ({ open, onClose }) => {
   const handleAddProduct = async () => {
     try {
       setLoading(true)
+
       // Validate required fields
       if (!product.name || !product.description || !product.price || !product.category_id || !product.brand_id) {
         return
@@ -187,37 +188,34 @@ const AddProductModal: React.FC<TProps> = ({ open, onClose }) => {
   return (
     <>
       {loading && <Spinner />}
-      <CustomModal handleClose={onClose} open={open}>
-        <Box
+      <Dialog
+        open={open}
+        onClose={onClose}
+        maxWidth='lg'
+        fullWidth
+        sx={{
+          '& .MuiDialog-paper': {
+            position: 'relative'
+          }
+        }}
+      >
+        <IconButton
+          onClick={onClose}
           sx={{
-            maxWidth: 1000,
-            width: '100%',
-            backgroundColor: 'background.paper',
-            borderRadius: 2,
-            boxShadow: 24,
-            p: 4,
-            mx: 2,
-            maxHeight: '90vh',
-            overflow: 'auto'
+            position: 'absolute',
+            top: 8,
+            right: 8,
+            zIndex: 1,
+            color: 'grey.500',
+            '&:hover': {
+              color: 'grey.700'
+            }
           }}
         >
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-            <Typography variant='h4' sx={{ fontWeight: 'bold', color: '#1976D2' }}>
-              Thêm sản phẩm mới
-            </Typography>
-            <IconButton
-              onClick={onClose}
-              sx={{
-                color: '#666',
-                '&:hover': {
-                  backgroundColor: '#f5f5f5'
-                }
-              }}
-            >
-              <CloseIcon />
-            </IconButton>
-          </Box>
-
+          <CloseIcon />
+        </IconButton>
+        <DialogTitle sx={{ fontWeight: 'bold', fontSize: '1.5rem', pr: 6 }}>Thêm sản phẩm mới</DialogTitle>
+        <DialogContent sx={{ pt: 3, maxHeight: '80vh', overflow: 'auto' }}>
           <Grid container spacing={4}>
             <Grid item xs={12}>
               <Typography variant='h6' sx={{ fontWeight: 'bold', color: '#1976D2', mb: 3 }}>
@@ -665,19 +663,16 @@ const AddProductModal: React.FC<TProps> = ({ open, onClose }) => {
               ))}
             </Grid>
           </Grid>
-
-          <Box
-            sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 4, pt: 3, borderTop: '1px solid #e0e0e0' }}
-          >
-            <Button onClick={() => onClose()} variant='outlined' size='large'>
-              Hủy
-            </Button>
-            <Button variant='contained' size='large' onClick={handleAddProduct}>
-              Lưu sản phẩm
-            </Button>
-          </Box>
-        </Box>
-      </CustomModal>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={onClose} variant='outlined' disabled={loading}>
+            Hủy
+          </Button>
+          <Button onClick={handleAddProduct} variant='contained' color='primary' disabled={loading}>
+            {loading ? 'Đang lưu...' : 'Lưu sản phẩm'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   )
 }

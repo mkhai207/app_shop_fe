@@ -1,25 +1,15 @@
-import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material'
+import { Add as AddIcon } from '@mui/icons-material'
 import {
   Box,
   Button,
-  Card,
-  CardContent,
   Chip,
   CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   FormControl,
-  FormControlLabel,
-  Grid,
-  IconButton,
   InputLabel,
   MenuItem,
   Paper,
   Select,
   SelectChangeEvent,
-  Switch,
   Table,
   TableBody,
   TableCell,
@@ -33,15 +23,14 @@ import {
 import React, { useEffect, useState } from 'react'
 import CustomPagination from 'src/components/custom-pagination'
 import { PAGE_SIZE_OPTION } from 'src/configs/gridConfig'
-import { deleteProduct, getAllProductsPublic } from 'src/services/product'
+import { deleteProduct, getAllProductsPublic, getDetailsProductPublic, updateProduct } from 'src/services/product'
 import { TBrand, TCategory, TProduct } from 'src/types/product'
 import qs from 'qs'
 import AddProductModal from './components/add-product-modal'
 import DeleteConfirmationModal from './components/delete-confirmation-modal'
+import EditProductModal from './components/edit-product-modal'
 import { getCategories } from 'src/services/category'
 import { getBrands } from 'src/services/brand'
-
-type TProps = {}
 
 const ManageProductPage = () => {
   const error = ''
@@ -51,6 +40,7 @@ const ManageProductPage = () => {
   const [page, setPage] = useState(1)
   const [editModal, setEditModal] = useState(false)
   const [editProduct, setEditProduct] = useState<TProduct | null>(null)
+  const [editVariants, setEditVariants] = useState<any[]>([])
   const [deleteModal, setDeleteModal] = useState(false)
   const [productToDelete, setProductToDelete] = useState<TProduct | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
@@ -74,9 +64,72 @@ const ManageProductPage = () => {
   const [categories, setCategories] = useState<TCategory[]>([])
   const [brands, setBrands] = useState<TBrand[]>([])
 
-  const handleEdit = (product: TProduct) => {
-    setEditProduct(product)
-    setEditModal(true)
+  const [editLoading, setEditLoading] = useState(false)
+
+  const handleEdit = async (product: TProduct) => {
+    try {
+      setEditLoading(true)
+      setEditProduct(product)
+
+      // Call API để lấy thông tin chi tiết sản phẩm trước khi hiển thị modal
+      const response = await getDetailsProductPublic(product.id)
+      if (response.status === 'success') {
+        const detail = response.data
+        setEditProduct({
+          ...product,
+          name: detail.name,
+          description: detail.description,
+          price: detail.price,
+          gender: detail.gender,
+          sold: detail.sold,
+          status: detail.status,
+          thumbnail: detail.thumbnail,
+          slider: detail.slider ? detail.slider.split(',') : [],
+          brand_id: detail.brand.id,
+          category_id: detail.category.id
+        })
+
+        // Xử lý variants từ API response
+        if (detail.variants && detail.variants.length > 0) {
+          const variantMap = new Map<string, any>()
+
+          detail.variants.forEach((variant: any) => {
+            const colorKey = variant.color.hex_code
+            if (!variantMap.has(colorKey)) {
+              variantMap.set(colorKey, {
+                hex_code: variant.color.hex_code,
+                inventory: []
+              })
+            }
+
+            const existingVariant = variantMap.get(colorKey)!
+            existingVariant.inventory.push({
+              size: variant.size.name,
+              quantity: variant.stock
+            })
+          })
+
+          setEditVariants(Array.from(variantMap.values()))
+        } else {
+          setEditVariants([
+            {
+              hex_code: '#000000',
+              inventory: [
+                { size: 'S', quantity: 0 },
+                { size: 'M', quantity: 0 },
+                { size: 'L', quantity: 0 }
+              ]
+            }
+          ])
+        }
+
+        setEditModal(true)
+      }
+    } catch (error) {
+      console.error('Error fetching product detail:', error)
+    } finally {
+      setEditLoading(false)
+    }
   }
 
   const formatFiltersForAPI = () => {
@@ -208,6 +261,53 @@ const ManageProductPage = () => {
   const handleShowDeleteModal = (product: TProduct) => {
     setProductToDelete(product)
     setDeleteModal(true)
+  }
+
+  // Function để tạo body dữ liệu cho API update product
+  const createUpdateProductBody = (product: TProduct, variants: any[]) => {
+    // Chuyển đổi variants từ format component sang format API
+    const apiVariants = variants.flatMap(variant =>
+      variant.inventory.map((item: any) => ({
+        colorId: variant.hex_code, // Sử dụng hex_code làm colorId
+        sizeId: item.size, // Sử dụng size name làm sizeId
+        stock: item.quantity
+      }))
+    )
+
+    return {
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      gender: product.gender,
+      sold: product.sold,
+      status: product.status,
+      thumbnail: product.thumbnail,
+      slider: Array.isArray(product.slider) ? product.slider.join(',') : product.slider,
+      brand_id: product.brand_id,
+      category_id: product.category_id,
+      variants: apiVariants
+    }
+  }
+
+  // Function để handle save product
+  const handleSaveProduct = async () => {
+    if (!editProduct) return
+
+    try {
+      const updateBody = createUpdateProductBody(editProduct, editVariants)
+      console.log('Update Product Body:', updateBody)
+
+      // Gọi API update product
+      const response = await updateProduct(editProduct.id, updateBody)
+      if (response.status === 'success') {
+        handleGetListProducts() // Refresh danh sách
+        setEditModal(false)
+        setEditProduct(null)
+        setEditVariants([])
+      }
+    } catch (error) {
+      console.error('Error updating product:', error)
+    }
   }
 
   useEffect(() => {
@@ -470,8 +570,15 @@ const ManageProductPage = () => {
                   </TableCell>
                   <TableCell sx={{ textAlign: 'center' }}>
                     <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                      <Button variant='outlined' color='warning' size='small' onClick={() => handleEdit(product)}>
-                        Sửa
+                      <Button
+                        variant='outlined'
+                        color='warning'
+                        size='small'
+                        onClick={() => handleEdit(product)}
+                        disabled={editLoading}
+                        startIcon={editLoading ? <CircularProgress size={16} /> : undefined}
+                      >
+                        {editLoading ? 'Đang tải...' : 'Sửa'}
                       </Button>
                       <Button
                         variant='outlined'
@@ -506,95 +613,16 @@ const ManageProductPage = () => {
 
       <AddProductModal open={addModal} onClose={() => setAddModal(false)} />
 
-      {/* Edit Product Dialog */}
-      <Dialog open={editModal} onClose={() => setEditModal(false)} maxWidth='md' fullWidth>
-        <DialogTitle sx={{ fontWeight: 'bold', fontSize: '1.5rem' }}>Sửa sản phẩm</DialogTitle>
-        <DialogContent sx={{ pt: 3 }}>
-          {editProduct && (
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  label='Tên sản phẩm'
-                  value={editProduct.name}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    setEditProduct({ ...editProduct, name: e.target.value })
-                  }
-                  fullWidth
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  label='Giá (VNĐ)'
-                  type='number'
-                  value={editProduct.price}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    setEditProduct({ ...editProduct, price: Number(e.target.value) })
-                  }
-                  fullWidth
-                  InputProps={{ inputProps: { min: 0 } }}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  label='Mô tả'
-                  value={editProduct.description}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    setEditProduct({ ...editProduct, description: e.target.value })
-                  }
-                  fullWidth
-                  multiline
-                  rows={3}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Giới tính</InputLabel>
-                  <Select
-                    value={editProduct.gender}
-                    label='Giới tính'
-                    onChange={e =>
-                      setEditProduct({ ...editProduct, gender: e.target.value as 'MALE' | 'FEMALE' | 'UNISEX' })
-                    }
-                  >
-                    <MenuItem value='MALE'>Nam</MenuItem>
-                    <MenuItem value='FEMALE'>Nữ</MenuItem>
-                    <MenuItem value='UNISEX'>Unisex</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={editProduct.status}
-                      onChange={e => setEditProduct({ ...editProduct, status: e.target.checked })}
-                    />
-                  }
-                  label='Trạng thái hoạt động'
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  label='Ảnh đại diện (URL)'
-                  value={editProduct.thumbnail}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    setEditProduct({ ...editProduct, thumbnail: e.target.value })
-                  }
-                  fullWidth
-                />
-              </Grid>
-            </Grid>
-          )}
-        </DialogContent>
-        <DialogActions sx={{ p: 3 }}>
-          <Button onClick={() => setEditModal(false)} variant='outlined'>
-            Huỷ
-          </Button>
-          <Button onClick={() => {}} variant='contained' color='primary'>
-            Lưu thay đổi
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* Edit Product Modal */}
+      <EditProductModal
+        open={editModal}
+        onClose={() => setEditModal(false)}
+        product={editProduct}
+        variants={editVariants}
+        onProductChange={setEditProduct}
+        onVariantsChange={setEditVariants}
+        onSave={handleSaveProduct}
+      />
 
       {/* Delete Confirmation Modal */}
       <DeleteConfirmationModal
