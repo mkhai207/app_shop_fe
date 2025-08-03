@@ -21,3 +21,13 @@ export const getReviewsByProductId = async (productId: string) => {
     return error
   }
 }
+
+export const fetchReviewsByProductId = async (query: any) => {
+  try {
+    const res = await axios.get(`${CONFIG_API.REVIEW.INDEX}/get-reviews`, query)
+
+    return res.data
+  } catch (error) {
+    return error
+  }
+}

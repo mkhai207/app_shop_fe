@@ -23,7 +23,7 @@ import { useTranslation } from 'react-i18next'
 import IconifyIcon from 'src/components/Icon'
 import Spinner from 'src/components/spinner'
 import { getDetailsProductPublic, getSimilarProducts } from 'src/services/product'
-import { getReviewsByProductId } from 'src/services/review'
+import { fetchReviewsByProductId, getReviewsByProductId } from 'src/services/review'
 import { TProductDetail } from 'src/types/product'
 import { TReview } from 'src/types/review'
 import { parseSlider } from 'src/utils/parseSlider'
@@ -35,6 +35,8 @@ import { resetCart } from 'src/stores/apps/cart'
 import CardProduct from 'src/components/card-product/CardProduct'
 import { TProduct } from 'src/types/product'
 import { useAuth } from 'src/hooks/useAuth'
+import { PAGE_SIZE_OPTION_MIN } from 'src/configs/gridConfig'
+import CustomPagination from 'src/components/custom-pagination'
 
 type TProps = {}
 
@@ -63,8 +65,20 @@ const DetailProductPage: NextPage<TProps> = () => {
     totalPages: 0,
     currentPage: 1
   })
-  const [reviews, setReviews] = useState<TReview[]>([])
+  const [reviews, setReviews] = useState<{
+    data: any[]
+    total: number
+    totalPages: number
+    currentPage: number
+  }>({
+    data: [],
+    total: 0,
+    totalPages: 0,
+    currentPage: 1
+  })
   const [reviewsLoading, setReviewsLoading] = useState(false)
+  const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTION_MIN[0])
+  const [page, setPage] = useState(1)
 
   const handleTabChange = (event: SyntheticEvent, newValue: number) => {
     setTabValue(newValue)
@@ -158,18 +172,54 @@ const DetailProductPage: NextPage<TProps> = () => {
     }
   }
 
+  const handleOnchangePagination = (page: number, pageSize: number) => {
+    setPage(page)
+    setPageSize(pageSize)
+  }
+
+  const formatFiltersForAPI = () => {
+    const params: Record<string, any> = {
+      page: page || 1,
+      limit: pageSize || 10,
+      sort: 'rating:desc'
+    }
+
+    Object.keys(params).forEach(key => {
+      if (
+        params[key] === undefined ||
+        params[key] === null ||
+        (Array.isArray(params[key]) && params[key].length === 0)
+      ) {
+        delete params[key]
+      }
+    })
+
+    return params
+  }
+
   const fetchReviews = async (productId: string) => {
     try {
       setReviewsLoading(true)
-      const response = await getReviewsByProductId(productId)
+
+      const queryParams = formatFiltersForAPI()
+      queryParams.product_id = productId
+
+      const response = await fetchReviewsByProductId({
+        params: queryParams
+      })
 
       if (response.status === 'success') {
-        setReviews(response.data)
-      } else {
-        console.error('Error fetching reviews:', response.message)
+        setReviewsLoading(false)
+        setReviews({
+          data: response.data || [],
+          total: response.meta?.totalItems || 0,
+          totalPages: response.meta?.totalPages || 0,
+          currentPage: response.meta?.currentPage || 1
+        })
       }
     } catch (error: any) {
-      console.error('Error fetching reviews:', error)
+      console.error('Error fetching products:', error)
+      setReviewsLoading(false)
     } finally {
       setReviewsLoading(false)
     }
@@ -633,9 +683,9 @@ const DetailProductPage: NextPage<TProps> = () => {
                 <Box display='flex' justifyContent='center' py={4}>
                   <Spinner />
                 </Box>
-              ) : reviews.length > 0 ? (
+              ) : reviews?.data?.length > 0 ? (
                 <Box>
-                  {reviews.map((review, index) => (
+                  {reviews?.data?.map((review: any, index: number) => (
                     <Box key={review.id} sx={{ mb: 3 }}>
                       <Paper
                         elevation={1}
@@ -707,7 +757,7 @@ const DetailProductPage: NextPage<TProps> = () => {
                               Hình ảnh đánh giá:
                             </Typography>
                             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                              {review.images.split(',').map((image, imgIndex) => (
+                              {review.images.split(',').map((image: any, imgIndex: number) => (
                                 <Box
                                   key={imgIndex}
                                   component='img'
@@ -745,7 +795,7 @@ const DetailProductPage: NextPage<TProps> = () => {
                           </Box>
                         )}
                       </Paper>
-                      {index < reviews.length - 1 && <Divider sx={{ my: 2 }} />}
+                      {index < reviews?.data?.length - 1 && <Divider sx={{ my: 2 }} />}
                     </Box>
                   ))}
                 </Box>
@@ -756,6 +806,18 @@ const DetailProductPage: NextPage<TProps> = () => {
                   </Typography>
                 </Box>
               )}
+              {/* Pagination */}
+              <Box sx={{ mt: 4, mb: 4 }}>
+                <CustomPagination
+                  onChangePagination={handleOnchangePagination}
+                  pageSizeOptions={PAGE_SIZE_OPTION_MIN}
+                  pageSize={pageSize}
+                  totalPages={reviews?.totalPages}
+                  page={page}
+                  rowLength={10}
+                  isHideShowed
+                />
+              </Box>
             </TabPanel>
           </Paper>
         </Container>
