@@ -17,7 +17,7 @@ export const discountService = {
 
   // Tạo khuyến mãi mới
   createDiscount: async (discount: NewDiscount): Promise<{ data: TDiscount }> => {
-    const response = await axiosInstance.post(CONFIG_API.DISCOUNT.INDEX, discount)
+    const response = await axiosInstance.post(CONFIG_API.DISCOUNT.CREATE_DISCOUNT, discount)
     return response.data
   },
 

@@ -34,8 +34,9 @@ import { TReview } from 'src/types/review'
 interface NewReview {
   rating: string
   comment: string
-  user_id: string
   product_id: string
+  order_id: string
+  images: string
 }
 
 // Mock data
@@ -127,14 +128,16 @@ const ManageReviewPage: NextPage<TProps> = () => {
   const [newReview, setNewReview] = useState<NewReview>({
     rating: '',
     comment: '',
-    user_id: '',
-    product_id: ''
+    product_id: '',
+    order_id: '',
+    images: ''
   })
   const [searchTerm, setSearchTerm] = useState('')
   const [filterRating, setFilterRating] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
+  const [addingReview, setAddingReview] = useState(false)
   const itemsPerPage = 10
 
   // Reset currentPage when search or filter changes
@@ -217,26 +220,60 @@ const ManageReviewPage: NextPage<TProps> = () => {
   }
 
   const handleAdd = () => {
-    setNewReview({ rating: '', comment: '', user_id: '', product_id: '' })
+    setNewReview({ rating: '', comment: '', product_id: '', order_id: '', images: '' })
     setAddModal(true)
   }
 
-  const handleSaveAdd = () => {
-    const maxId = reviews.length > 0 ? Math.max(...reviews.map(r => r.id)) : 0
-    const reviewToAdd: TReview = {
-      ...newReview,
-      id: maxId + 1,
-      rating: Number(newReview.rating),
-      user_id: Number(newReview.user_id),
-      product_id: newReview.product_id,
-      created_at: new Date().toISOString(),
-      created_by: 'admin',
-      updated_at: new Date().toISOString(),
-      updated_by: 'admin',
-      images: ''
+  const handleSaveAdd = async () => {
+    // Validation
+    if (!newReview.rating || !newReview.comment || !newReview.product_id) {
+      alert('Vui lòng điền đầy đủ thông tin bắt buộc (Đánh giá, Nội dung, Product ID)')
+      return
     }
-    setReviews([...reviews, reviewToAdd])
-    setAddModal(false)
+    
+    if (Number(newReview.rating) < 1 || Number(newReview.rating) > 5) {
+      alert('Đánh giá phải từ 1 đến 5 sao')
+      return
+    }
+    
+    setAddingReview(true)
+    
+    try {
+      console.log('🔄 Adding new review:', newReview)
+      
+      const reviewData = {
+        rating: Number(newReview.rating),
+        comment: newReview.comment,
+        product_id: newReview.product_id,
+        order_id: newReview.order_id ? Number(newReview.order_id) : undefined,
+        images: newReview.images || ''
+      }
+      
+      const response = await reviewService.createReview(reviewData)
+      console.log('✅ Review added successfully:', response)
+      
+      // Refresh the reviews list
+      const updatedResponse = await reviewService.getReviews({
+        page: currentPage,
+        limit: itemsPerPage,
+        search: searchTerm || undefined,
+        rating: filterRating ? Number(filterRating) : undefined
+      })
+      
+      setReviews(updatedResponse.data)
+      setTotalItems(updatedResponse.meta.totalItems)
+      setTotalPages(updatedResponse.meta.totalPages)
+      
+      setAddModal(false)
+      
+      // Show success message
+      alert('Thêm đánh giá thành công!')
+    } catch (error: any) {
+      console.error('❌ Failed to add review:', error)
+      alert('Lỗi khi thêm đánh giá: ' + (error.message || 'Unknown error'))
+    } finally {
+      setAddingReview(false)
+    }
   }
 
   // Filtering and pagination
@@ -361,7 +398,7 @@ const ManageReviewPage: NextPage<TProps> = () => {
                      'Người tạo',
                      'Ngày cập nhật',
                      'Người cập nhật',
-                     'User ID',
+                     'Order ID',
                      'Product ID',
                      'Hành động'
                    ].map(header => (
@@ -440,7 +477,7 @@ const ManageReviewPage: NextPage<TProps> = () => {
                           <span style={ellipsisStyle}>{review.updated_by}</span>
                         </Tooltip>
                       </TableCell>
-                      <TableCell sx={{ textAlign: 'center' }}>{review.user_id}</TableCell>
+                      <TableCell sx={{ textAlign: 'center' }}>{review.order_id || review.user_id || 'N/A'}</TableCell>
                       <TableCell sx={{ textAlign: 'center' }}>{review.product_id}</TableCell>
                       <TableCell sx={{ textAlign: 'center' }}>
                         <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
@@ -565,11 +602,11 @@ const ManageReviewPage: NextPage<TProps> = () => {
                 fullWidth
               />
               <TextField
-                label='User ID'
+                label='Order ID'
                 type='number'
-                value={editReview.user_id}
+                value={editReview.order_id || editReview.user_id || ''}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setEditReview({ ...editReview, user_id: Number(e.target.value) })
+                  setEditReview({ ...editReview, order_id: Number(e.target.value) })
                 }
                 fullWidth
               />
@@ -620,15 +657,6 @@ const ManageReviewPage: NextPage<TProps> = () => {
               fullWidth
             />
             <TextField
-              label='User ID'
-              type='number'
-              value={newReview.user_id}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setNewReview({ ...newReview, user_id: e.target.value })
-              }
-              fullWidth
-            />
-            <TextField
               label='Product ID'
               value={newReview.product_id}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -636,12 +664,37 @@ const ManageReviewPage: NextPage<TProps> = () => {
               }
               fullWidth
             />
+            <TextField
+              label='Order ID'
+              type='number'
+              value={newReview.order_id}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setNewReview({ ...newReview, order_id: e.target.value })
+              }
+              fullWidth
+            />
+            <TextField
+              label='Images (URLs separated by commas)'
+              value={newReview.images}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setNewReview({ ...newReview, images: e.target.value })
+              }
+              placeholder='url1,url2,url3'
+              fullWidth
+            />
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setAddModal(false)}>Huỷ</Button>
-          <Button onClick={handleSaveAdd} variant='contained' color='primary'>
-            Lưu
+          <Button onClick={() => setAddModal(false)} disabled={addingReview}>
+            Huỷ
+          </Button>
+          <Button 
+            onClick={handleSaveAdd} 
+            variant='contained' 
+            color='primary'
+            disabled={addingReview}
+          >
+            {addingReview ? 'Đang lưu...' : 'Lưu'}
           </Button>
         </DialogActions>
       </Dialog>

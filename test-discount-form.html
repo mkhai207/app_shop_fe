@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Form Tạo Khuyến Mãi</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 80px;
+            resize: vertical;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 14px;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Form Tạo Khuyến Mãi</h1>
+        
+        <form id="discountForm">
+            <div class="form-group">
+                <label for="code">Mã khuyến mãi *:</label>
+                <input type="text" id="code" value="SUMMER2024" required>
+            </div>
+
+            <div class="form-group">
+                <label for="name">Tên khuyến mãi *:</label>
+                <input type="text" id="name" value="Khuyến mãi mùa hè" required>
+            </div>
+
+            <div class="form-group">
+                <label for="description">Mô tả:</label>
+                <textarea id="description">Giảm giá cho tất cả sản phẩm mùa hè</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="discountType">Loại giảm giá *:</label>
+                <select id="discountType" required>
+                    <option value="PERCENTAGE">Phần trăm (%)</option>
+                    <option value="FIXED">Số tiền cố định (VND)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="discountValue">Giá trị giảm *:</label>
+                <input type="number" id="discountValue" value="20" min="0" step="0.01" required>
+            </div>
+
+            <div class="form-group">
+                <label for="validFrom">Hiệu lực từ *:</label>
+                <input type="text" id="validFrom" placeholder="DD/MM/YYYY HH:mm" required style="font-family: monospace;">
+                <small style="color: #666;">Chỉ nhập số, hệ thống sẽ tự động format</small>
+            </div>
+
+            <div class="form-group">
+                <label for="validUntil">Hiệu lực đến *:</label>
+                <input type="text" id="validUntil" placeholder="DD/MM/YYYY HH:mm" required style="font-family: monospace;">
+                <small style="color: #666;">Chỉ nhập số, hệ thống sẽ tự động format</small>
+            </div>
+
+            <div class="form-group">
+                <label for="minimumOrderValue">Giá trị đơn hàng tối thiểu (VND):</label>
+                <input type="number" id="minimumOrderValue" value="500000" min="0">
+            </div>
+
+            <div class="form-group">
+                <label for="maxDiscountAmount">Giá trị giảm tối đa (VND):</label>
+                <input type="number" id="maxDiscountAmount" value="200000" min="0">
+            </div>
+
+            <button type="submit" id="submitBtn">🚀 Test Form Validation</button>
+        </form>
+
+        <div id="result" class="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        // Set default dates
+        const now = new Date();
+        const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate());
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 2, 0);
+        
+        // Format to DD/MM/YYYY HH:mm
+        const formatDate = (date) => {
+            const day = date.getDate().toString().padStart(2, '0');
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const year = date.getFullYear();
+            const hours = date.getHours().toString().padStart(2, '0');
+            const minutes = date.getMinutes().toString().padStart(2, '0');
+            return `${day}/${month}/${year} ${hours}:${minutes}`;
+        };
+        
+        document.getElementById('validFrom').value = formatDate(nextMonth);
+        document.getElementById('validUntil').value = formatDate(endOfMonth);
+
+        document.getElementById('discountForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const resultDiv = document.getElementById('result');
+            
+            // Validation
+            const code = document.getElementById('code').value.trim();
+            const name = document.getElementById('name').value.trim();
+            const discountValue = parseFloat(document.getElementById('discountValue').value);
+            const validFrom = document.getElementById('validFrom').value;
+            const validUntil = document.getElementById('validUntil').value;
+            
+            let errors = [];
+            
+            if (!code) {
+                errors.push('❌ Mã khuyến mãi không được để trống');
+            }
+            
+            if (!name) {
+                errors.push('❌ Tên khuyến mãi không được để trống');
+            }
+            
+            if (discountValue <= 0) {
+                errors.push('❌ Giá trị giảm phải lớn hơn 0');
+            }
+            
+            // Validate date format
+            const dateRegex = /^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{1,2})$/;
+            
+            if (!validFrom || !validUntil) {
+                errors.push('❌ Vui lòng nhập thời gian hiệu lực');
+            } else if (!dateRegex.test(validFrom)) {
+                errors.push('❌ Định dạng thời gian bắt đầu không hợp lệ (VD: 03/08/2025 00:00)');
+            } else if (!dateRegex.test(validUntil)) {
+                errors.push('❌ Định dạng thời gian kết thúc không hợp lệ (VD: 04/08/2025 23:59)');
+            } else {
+                // Convert to Date objects for comparison
+                const fromMatch = validFrom.match(dateRegex);
+                const untilMatch = validUntil.match(dateRegex);
+                
+                if (fromMatch && untilMatch) {
+                    const fromDate = new Date(
+                        parseInt(fromMatch[3]), // year
+                        parseInt(fromMatch[2]) - 1, // month (0-indexed)
+                        parseInt(fromMatch[1]), // day
+                        parseInt(fromMatch[4]), // hour
+                        parseInt(fromMatch[5]) // minute
+                    );
+                    
+                    const untilDate = new Date(
+                        parseInt(untilMatch[3]), // year
+                        parseInt(untilMatch[2]) - 1, // month (0-indexed)
+                        parseInt(untilMatch[1]), // day
+                        parseInt(untilMatch[4]), // hour
+                        parseInt(untilMatch[5]) // minute
+                    );
+                    
+                    if (fromDate >= untilDate) {
+                        errors.push('❌ Thời gian kết thúc phải sau thời gian bắt đầu');
+                    }
+                }
+            }
+            
+            // Convert date format to ISO string
+            const convertToISO = (dateString) => {
+                const match = dateString.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{1,2})$/);
+                if (match) {
+                    const [, day, month, year, hour, minute] = match;
+                    return new Date(
+                        parseInt(year),
+                        parseInt(month) - 1,
+                        parseInt(day),
+                        parseInt(hour),
+                        parseInt(minute)
+                    ).toISOString();
+                }
+                return '';
+            };
+            
+            const requestData = {
+                code: code,
+                name: name,
+                description: document.getElementById('description').value.trim(),
+                discount_value: discountValue,
+                discount_type: document.getElementById('discountType').value,
+                valid_from: convertToISO(validFrom),
+                valid_until: convertToISO(validUntil),
+                minimum_order_value: parseInt(document.getElementById('minimumOrderValue').value) || 0,
+                max_discount_amount: document.getElementById('maxDiscountAmount').value ? 
+                    parseInt(document.getElementById('maxDiscountAmount').value) : null
+            };
+            
+            resultDiv.style.display = 'block';
+            
+            if (errors.length > 0) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+❌ Validation Errors:
+
+${errors.join('\n')}
+
+📋 Form Data:
+${JSON.stringify(requestData, null, 2)}
+                `;
+            } else {
+                resultDiv.className = 'result success';
+                resultDiv.innerHTML = `
+✅ Validation Passed!
+
+📋 Request Data sẽ được gửi:
+${JSON.stringify(requestData, null, 2)}
+
+🔗 API Endpoint: POST /api/v0/discounts/create-discount
+📝 Headers: 
+  - Content-Type: application/json
+  - Authorization: Bearer <admin_token>
+                `;
+            }
+        });
+
+        // Update discount value label based on type
+        document.getElementById('discountType').addEventListener('change', function() {
+            const discountValue = document.getElementById('discountValue');
+            const type = this.value;
+            
+            if (type === 'PERCENTAGE') {
+                discountValue.placeholder = 'Ví dụ: 20 (20%)';
+                discountValue.step = '0.01';
+            } else {
+                discountValue.placeholder = 'Ví dụ: 50000 (50,000 VND)';
+                discountValue.step = '1000';
+            }
+        });
+
+        // Auto-format currency inputs
+        document.getElementById('minimumOrderValue').addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+
+        document.getElementById('maxDiscountAmount').addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+
+        // Auto-format date inputs
+        function formatDateTimeInput(input, format) {
+            let value = input.value.replace(/[^0-9]/g, '');
+            let result = format;
+            let valueIndex = 0;
+            
+            for (let i = 0; i < format.length && valueIndex < value.length; i++) {
+                if (format[i] === 'D' || format[i] === 'M' || format[i] === 'Y' || format[i] === 'H' || format[i] === 'm') {
+                    result = result.substring(0, i) + value[valueIndex] + result.substring(i + 1);
+                    valueIndex++;
+                }
+            }
+            
+            // Chỉ giữ lại phần đã nhập
+            let lastDigitIndex = -1;
+            for (let i = 0; i < result.length; i++) {
+                if (/\d/.test(result[i])) {
+                    lastDigitIndex = i;
+                }
+            }
+            
+            if (lastDigitIndex >= 0) {
+                input.value = result.substring(0, lastDigitIndex + 1);
+            } else {
+                input.value = result;
+            }
+        }
+
+        document.getElementById('validFrom').addEventListener('input', function() {
+            formatDateTimeInput(this, 'DD/MM/YYYY HH:mm');
+        });
+
+        document.getElementById('validUntil').addEventListener('input', function() {
+            formatDateTimeInput(this, 'DD/MM/YYYY HH:mm');
+        });
+    </script>
+</body>
+</html> 

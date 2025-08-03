@@ -6,7 +6,8 @@ export interface TReview {
   updated_by: string
   rating: number
   comment: string
-  user_id: number
+  user_id?: number
+  order_id?: number
   product_id: string
   images: string
 }
@@ -14,9 +15,9 @@ export interface TReview {
 export interface NewReview {
   rating: number
   comment: string
-  user_id: number
   product_id: string
   images?: string
+  order_id?: number
 }
 
 export interface ReviewFilter {

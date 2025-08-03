@@ -32,12 +32,14 @@ import { Order } from 'src/services/order'
 // Định nghĩa kiểu dữ liệu đơn hàng mới
 interface NewOrder {
   name: string
-  payment_method: string
   phone: string
   shipping_address: string
-  status: string
-  discount_id: string
-  total_money: string
+  paymentMethod: string
+  discount_code?: string
+  orderDetails: Array<{
+    product_variant_id: number
+    quantity: number
+  }>
 }
 
 const cellStyle = {
@@ -140,7 +142,7 @@ const PaymentMethodCell = ({ method }: { method: string }) => {
 
 const ManageOrderPage: React.FC = () => {
   // State declarations
-  const { fetchOrders } = useOrder()
+  const { fetchOrders, createNewOrder } = useOrder()
   const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTION[0])
   const [page, setPage] = useState(1)
   const [orders, setOrders] = useState<Order[]>([])
@@ -151,13 +153,18 @@ const ManageOrderPage: React.FC = () => {
   const [addModal, setAddModal] = useState(false)
   const [newOrder, setNewOrder] = useState<NewOrder>({
     name: '',
-    payment_method: '',
     phone: '',
     shipping_address: '',
-    status: '',
-    discount_id: '',
-    total_money: ''
+    paymentMethod: '',
+    orderDetails: [{ product_variant_id: 1, quantity: 1 }]
   })
+  const [formErrors, setFormErrors] = useState<{
+    name?: string
+    phone?: string
+    shipping_address?: string
+    paymentMethod?: string
+    orderDetails?: string
+  }>({})
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [filterPaymentMethod, setFilterPaymentMethod] = useState('')
@@ -208,31 +215,118 @@ const ManageOrderPage: React.FC = () => {
   const handleAdd = () => {
     setNewOrder({
       name: '',
-      payment_method: '',
       phone: '',
       shipping_address: '',
-      status: '',
-      discount_id: '',
-      total_money: ''
+      paymentMethod: '',
+      orderDetails: [{ product_variant_id: 1, quantity: 1 }]
     })
+    setFormErrors({})
     setAddModal(true)
   }
 
-  const handleSaveAdd = () => {
-    const maxId = orders.length > 0 ? Math.max(...orders.map(o => o.id)) : 0
-    const orderToAdd: Order = {
-      ...newOrder,
-      id: maxId + 1,
-      total_money: Number(newOrder.total_money),
-      discount_id: Number(newOrder.discount_id) || 0,
-      user_id: 1,
-      created_at: new Date().toISOString(),
-      created_by: 'admin',
-      updated_at: new Date().toISOString(),
-      updated_by: 'admin'
+  const validateField = (field: string, value: any) => {
+    switch (field) {
+      case 'name':
+        if (!value.trim()) {
+          return 'Tên khách hàng là bắt buộc'
+        } else if (value.trim().length < 2) {
+          return 'Tên khách hàng phải có ít nhất 2 ký tự'
+        }
+        return undefined
+      
+      case 'phone':
+        if (!value.trim()) {
+          return 'Số điện thoại là bắt buộc'
+        } else if (!/^[0-9]{10,11}$/.test(value.trim())) {
+          return 'Số điện thoại phải có 10-11 chữ số'
+        }
+        return undefined
+      
+      case 'shipping_address':
+        if (!value.trim()) {
+          return 'Địa chỉ giao hàng là bắt buộc'
+        } else if (value.trim().length < 10) {
+          return 'Địa chỉ giao hàng phải có ít nhất 10 ký tự'
+        }
+        return undefined
+      
+      case 'paymentMethod':
+        if (!value) {
+          return 'Vui lòng chọn phương thức thanh toán'
+        }
+        return undefined
+      
+      default:
+        return undefined
     }
-    setOrders([...orders, orderToAdd])
-    setAddModal(false)
+  }
+
+  const validateOrderDetails = (orderDetails: Array<{product_variant_id: number, quantity: number}>) => {
+    if (orderDetails.length === 0) {
+      return 'Phải có ít nhất một sản phẩm trong đơn hàng'
+    }
+    
+    for (let i = 0; i < orderDetails.length; i++) {
+      const detail = orderDetails[i]
+      if (!detail.product_variant_id || detail.product_variant_id <= 0) {
+        return `Sản phẩm ${i + 1}: ID biến thể sản phẩm phải là số dương`
+      }
+      if (!detail.quantity || detail.quantity <= 0) {
+        return `Sản phẩm ${i + 1}: Số lượng phải là số dương`
+      }
+    }
+    
+    return undefined
+  }
+
+  const validateForm = () => {
+    const errors: any = {}
+    
+    // Validate individual fields
+    const nameError = validateField('name', newOrder.name)
+    if (nameError) errors.name = nameError
+    
+    const phoneError = validateField('phone', newOrder.phone)
+    if (phoneError) errors.phone = phoneError
+    
+    const addressError = validateField('shipping_address', newOrder.shipping_address)
+    if (addressError) errors.shipping_address = addressError
+    
+    const paymentError = validateField('paymentMethod', newOrder.paymentMethod)
+    if (paymentError) errors.paymentMethod = paymentError
+    
+    // Validate order details
+    const orderDetailsError = validateOrderDetails(newOrder.orderDetails)
+    if (orderDetailsError) errors.orderDetails = orderDetailsError
+    
+    setFormErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
+  const handleSaveAdd = async () => {
+    try {
+      setLoading(true)
+      setError('')
+      
+      // Validate form
+      if (!validateForm()) {
+        return
+      }
+
+      const response = await createNewOrder(newOrder)
+      
+      // Add the new order to the list
+      setOrders([response.data, ...orders])
+      setAddModal(false)
+      setFormErrors({})
+      
+      // Show success message
+      alert('Tạo đơn hàng thành công!')
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Có lỗi xảy ra khi tạo đơn hàng')
+    } finally {
+      setLoading(false)
+    }
   }
 
   // Filtering and pagination
@@ -595,85 +689,173 @@ const ManageOrderPage: React.FC = () => {
         <DialogTitle>Thêm đơn hàng mới</DialogTitle>
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+                         <TextField
+               label='Tên khách hàng *'
+               value={newOrder.name}
+               onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                 const value = e.target.value
+                 setNewOrder({ ...newOrder, name: value })
+                 const error = validateField('name', value)
+                 setFormErrors({ ...formErrors, name: error })
+               }}
+               fullWidth
+               required
+               error={!!formErrors.name}
+               helperText={formErrors.name}
+             />
+                         <TextField
+               label='Số điện thoại *'
+               value={newOrder.phone}
+               onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                 const value = e.target.value
+                 setNewOrder({ ...newOrder, phone: value })
+                 const error = validateField('phone', value)
+                 setFormErrors({ ...formErrors, phone: error })
+               }}
+               fullWidth
+               required
+               error={!!formErrors.phone}
+               helperText={formErrors.phone}
+             />
+                         <TextField
+               label='Địa chỉ giao hàng *'
+               value={newOrder.shipping_address}
+               onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                 const value = e.target.value
+                 setNewOrder({ ...newOrder, shipping_address: value })
+                 const error = validateField('shipping_address', value)
+                 setFormErrors({ ...formErrors, shipping_address: error })
+               }}
+               fullWidth
+               multiline
+               rows={2}
+               required
+               error={!!formErrors.shipping_address}
+               helperText={formErrors.shipping_address}
+             />
             <TextField
-              label='Tên khách hàng'
-              value={newOrder.name}
+              label='Mã giảm giá (tùy chọn)'
+              value={newOrder.discount_code || ''}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setNewOrder({ ...newOrder, name: e.target.value })
+                setNewOrder({ ...newOrder, discount_code: e.target.value })
               }
               fullWidth
+              helperText='Nhập mã giảm giá nếu có'
             />
-            <TextField
-              label='Số điện thoại'
-              value={newOrder.phone}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setNewOrder({ ...newOrder, phone: e.target.value })
-              }
-              fullWidth
-            />
-            <TextField
-              label='Địa chỉ giao hàng'
-              value={newOrder.shipping_address}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setNewOrder({ ...newOrder, shipping_address: e.target.value })
-              }
-              fullWidth
-              multiline
-              rows={2}
-            />
-            <TextField
-              label='Tổng tiền'
-              type='number'
-              value={newOrder.total_money}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setNewOrder({ ...newOrder, total_money: e.target.value })
-              }
-              fullWidth
-            />
-            <TextField
-              label='Mã giảm giá'
-              value={newOrder.discount_id}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setNewOrder({ ...newOrder, discount_id: e.target.value })
-              }
-              fullWidth
-            />
-            <FormControl fullWidth>
-              <InputLabel>Phương thức thanh toán</InputLabel>
-              <Select
-                value={newOrder.payment_method}
-                onChange={(e: SelectChangeEvent) =>
-                  setNewOrder({ ...newOrder, payment_method: e.target.value })
-                }
-                label='Phương thức thanh toán'
-              >
-                <MenuItem value='ONLINE'>Thanh toán online</MenuItem>
-                <MenuItem value='COD'>Thanh toán khi nhận hàng</MenuItem>
-                <MenuItem value='BANK_TRANSFER'>Chuyển khoản ngân hàng</MenuItem>
-              </Select>
-            </FormControl>
-            <FormControl fullWidth>
-              <InputLabel>Trạng thái</InputLabel>
-              <Select
-                value={newOrder.status}
-                onChange={(e: SelectChangeEvent) =>
-                  setNewOrder({ ...newOrder, status: e.target.value })
-                }
-                label='Trạng thái'
-              >
-                <MenuItem value='PENDING'>Chờ thanh toán</MenuItem>
-                <MenuItem value='PAID'>Đã thanh toán</MenuItem>
-                <MenuItem value='SHIPPING'>Đang giao</MenuItem>
-                <MenuItem value='DELIVERED'>Đã giao</MenuItem>
-                <MenuItem value='CANCELLED'>Đã hủy</MenuItem>
-              </Select>
-            </FormControl>
+                         <FormControl fullWidth error={!!formErrors.paymentMethod}>
+               <InputLabel>Phương thức thanh toán *</InputLabel>
+               <Select
+                 value={newOrder.paymentMethod}
+                 onChange={(e: SelectChangeEvent) => {
+                   const value = e.target.value
+                   setNewOrder({ ...newOrder, paymentMethod: value })
+                   const error = validateField('paymentMethod', value)
+                   setFormErrors({ ...formErrors, paymentMethod: error })
+                 }}
+                 label='Phương thức thanh toán *'
+                 required
+               >
+                 <MenuItem value='CASH'>Tiền mặt</MenuItem>
+                 <MenuItem value='ONLINE'>Thanh toán online</MenuItem>
+               </Select>
+               {formErrors.paymentMethod && (
+                 <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>
+                   {formErrors.paymentMethod}
+                 </Typography>
+               )}
+             </FormControl>
+            
+                         {/* Order Details Section */}
+             <Box sx={{ 
+               mt: 2, 
+               p: 2, 
+               border: formErrors.orderDetails ? '1px solid #d32f2f' : '1px solid #e0e0e0', 
+               borderRadius: 1 
+             }}>
+               <Typography variant='h6' sx={{ mb: 2 }}>
+                 Chi tiết đơn hàng *
+               </Typography>
+               {formErrors.orderDetails && (
+                 <Typography variant="caption" color="error" sx={{ mb: 2, display: 'block' }}>
+                   {formErrors.orderDetails}
+                 </Typography>
+               )}
+              
+              {newOrder.orderDetails.map((detail, index) => (
+                <Box key={index} sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'center' }}>
+                                     <TextField
+                     label='ID biến thể sản phẩm'
+                     type='number'
+                     value={detail.product_variant_id}
+                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                       const updatedDetails = [...newOrder.orderDetails]
+                       updatedDetails[index].product_variant_id = Number(e.target.value)
+                       setNewOrder({ ...newOrder, orderDetails: updatedDetails })
+                       
+                       // Validate order details
+                       const orderDetailsError = validateOrderDetails(updatedDetails)
+                       setFormErrors({ ...formErrors, orderDetails: orderDetailsError })
+                     }}
+                     sx={{ flex: 1 }}
+                   />
+                                     <TextField
+                     label='Số lượng'
+                     type='number'
+                     value={detail.quantity}
+                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                       const updatedDetails = [...newOrder.orderDetails]
+                       updatedDetails[index].quantity = Number(e.target.value)
+                       setNewOrder({ ...newOrder, orderDetails: updatedDetails })
+                       
+                       // Validate order details
+                       const orderDetailsError = validateOrderDetails(updatedDetails)
+                       setFormErrors({ ...formErrors, orderDetails: orderDetailsError })
+                     }}
+                     sx={{ width: 120 }}
+                   />
+                                     <Button
+                     variant='outlined'
+                     color='error'
+                     size='small'
+                     onClick={() => {
+                       const updatedDetails = newOrder.orderDetails.filter((_, i) => i !== index)
+                       setNewOrder({ ...newOrder, orderDetails: updatedDetails })
+                       const orderDetailsError = validateOrderDetails(updatedDetails)
+                       setFormErrors({ ...formErrors, orderDetails: orderDetailsError })
+                     }}
+                   >
+                     Xóa
+                   </Button>
+                </Box>
+              ))}
+              
+                             <Button
+                 variant='outlined'
+                 onClick={() => {
+                   const updatedDetails = [...newOrder.orderDetails, { product_variant_id: 1, quantity: 1 }]
+                   setNewOrder({
+                     ...newOrder,
+                     orderDetails: updatedDetails
+                   })
+                   const orderDetailsError = validateOrderDetails(updatedDetails)
+                   setFormErrors({ ...formErrors, orderDetails: orderDetailsError })
+                 }}
+                 sx={{ mt: 1 }}
+               >
+                 Thêm sản phẩm
+               </Button>
+            </Box>
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setAddModal(false)}>Huỷ</Button>
-          <Button onClick={handleSaveAdd} variant='contained' color='primary'>
-            Lưu
+          <Button 
+            onClick={handleSaveAdd} 
+            variant='contained' 
+            color='primary'
+            disabled={loading}
+          >
+            {loading ? 'Đang tạo...' : 'Lưu'}
           </Button>
         </DialogActions>
       </Dialog>

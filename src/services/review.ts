@@ -23,8 +23,15 @@ export const reviewService = {
 
   // Tạo đánh giá mới
   createReview: async (review: NewReview) => {
-    const response = await instanceAxios.post('/reviews', review)
-    return response.data
+    console.log('🔄 Calling API createReview with data:', review)
+    try {
+      const response = await instanceAxios.post('/reviews/create-review', review)
+      console.log('✅ Create review successful:', response.data)
+      return response.data
+    } catch (error) {
+      console.error('❌ Create review failed:', error)
+      throw error
+    }
   },
 
   // Cập nhật đánh giá

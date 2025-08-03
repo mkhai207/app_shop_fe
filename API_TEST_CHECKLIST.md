@@ -105,9 +105,38 @@
 - [ ] Refresh trang
 - [ ] Kiểm tra error handling
 
-## 🔍 Bước 6: Test Component
+## 🔍 Bước 6: Test Create Review
 
-### 6.1 Truy cập Test Page
+### 6.1 Test Create Review API
+- [ ] Mở file `test-create-review.html` trong browser
+- [ ] Điền thông tin form:
+  - [ ] Product ID: "PROD001"
+  - [ ] Rating: 4.5
+  - [ ] Comment: "Sản phẩm rất tốt, giao hàng nhanh"
+  - [ ] Images: "url1,url2,url3"
+  - [ ] Order ID: 123
+- [ ] Click "Create Review"
+- [ ] Kiểm tra response thành công
+
+### 6.2 Test Create Review trong App
+- [ ] Truy cập `/manage-system/review`
+- [ ] Click nút "Thêm đánh giá"
+- [ ] Điền form:
+  - [ ] Rating: chọn 4 sao
+  - [ ] Comment: nhập nội dung
+  - [ ] Product ID: "PROD001"
+  - [ ] Order ID: 123
+  - [ ] Images: "url1,url2,url3"
+- [ ] Click "Lưu"
+- [ ] Kiểm tra:
+  - [ ] Loading state hiển thị
+  - [ ] API call thành công
+  - [ ] Danh sách được refresh
+  - [ ] Đánh giá mới xuất hiện trong bảng
+
+## 🔍 Bước 7: Test Component
+
+### 7.1 Truy cập Test Page
 - [ ] Điều hướng đến `/test-api`
 - [ ] Click nút "Test API Call"
 - [ ] Kiểm tra response hiển thị
@@ -115,6 +144,8 @@
 ## 📝 Ghi chú
 
 ### Console Logs cần có:
+
+**Get Reviews:**
 ```
 🔄 Loading reviews...
 📊 Current state: {currentPage: 1, searchTerm: "", filterRating: "", itemsPerPage: 10}
@@ -126,6 +157,16 @@
 🎯 State updated: {reviewsCount: X, totalItems: Y, totalPages: Z}
 🎨 Render debug - Loading: false, Reviews count: X, Error: ""
 🏁 Loading completed
+```
+
+**Create Review:**
+```
+🔄 Adding new review: {rating: "4", comment: "...", product_id: "PROD001", ...}
+🔄 Calling API createReview with data: {rating: 4, comment: "...", product_id: "PROD001", ...}
+✅ Create review successful: {...}
+✅ Review added successfully: {...}
+🔄 Loading reviews... (refresh)
+✅ Reviews loaded successfully: {...}
 ```
 
 ### Network Request cần có:

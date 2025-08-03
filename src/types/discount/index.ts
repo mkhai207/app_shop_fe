@@ -7,7 +7,7 @@ export interface TDiscount {
   code: string
   name: string
   description: string
-  discount_value: string
+  discount_value: number
   discount_type: 'PERCENTAGE' | 'FIXED'
   valid_from: string
   valid_until: string
@@ -33,7 +33,7 @@ export interface NewDiscount {
   code: string
   name: string
   description: string
-  discount_value: string
+  discount_value: number
   discount_type: 'PERCENTAGE' | 'FIXED'
   valid_from: string
   valid_until: string

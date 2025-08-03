@@ -23,7 +23,9 @@ import {
   SelectChangeEvent,
   CircularProgress,
   Chip,
-  InputAdornment
+  InputAdornment,
+  Snackbar,
+  OutlinedInput
 } from '@mui/material'
 
 import { useDiscount } from 'src/hooks/useDiscount'
@@ -90,7 +92,7 @@ const ManageDiscountPage: React.FC = () => {
     code: '',
     name: '',
     description: '',
-    discount_value: '',
+    discount_value: 0,
     discount_type: 'PERCENTAGE',
     valid_from: '',
     valid_until: '',
@@ -101,6 +103,15 @@ const ManageDiscountPage: React.FC = () => {
   const [filterType, setFilterType] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean
+    message: string
+    severity: 'success' | 'error' | 'info' | 'warning'
+  }>({
+    open: false,
+    message: '',
+    severity: 'info'
+  })
 
   // Handlers
   const handleDelete = async (id: number) => {
@@ -113,28 +124,108 @@ const ManageDiscountPage: React.FC = () => {
     }
   }
 
+  // Hàm chuyển đổi ISO string về format DD/MM/YYYY HH:mm
+  const convertFromISOString = (isoString: string): string => {
+    try {
+      const date = new Date(isoString)
+      if (isNaN(date.getTime())) return ''
+      
+      const day = date.getDate().toString().padStart(2, '0')
+      const month = (date.getMonth() + 1).toString().padStart(2, '0')
+      const year = date.getFullYear()
+      const hours = date.getHours().toString().padStart(2, '0')
+      const minutes = date.getMinutes().toString().padStart(2, '0')
+      
+      return `${day}/${month}/${year} ${hours}:${minutes}`
+    } catch (error) {
+      console.error('Lỗi chuyển đổi từ ISO string:', error)
+      return ''
+    }
+  }
+
   const handleEdit = (discount: TDiscount) => {
-    setEditDiscount(discount)
+    setEditDiscount({
+      ...discount,
+      valid_from: convertFromISOString(discount.valid_from),
+      valid_until: convertFromISOString(discount.valid_until)
+    })
     setEditModal(true)
   }
 
   const handleSaveEdit = async () => {
     if (editDiscount) {
       try {
+        // Validate format ngày tháng
+        if (!validateDateTimeFormat(editDiscount.valid_from)) {
+          setSnackbar(prev => ({
+            ...prev,
+            open: true,
+            message: 'Định dạng thời gian bắt đầu không hợp lệ! Vui lòng nhập theo định dạng: DD/MM/YYYY HH:mm',
+            severity: 'error'
+          }))
+          return
+        }
+
+        if (!validateDateTimeFormat(editDiscount.valid_until)) {
+          setSnackbar(prev => ({
+            ...prev,
+            open: true,
+            message: 'Định dạng thời gian kết thúc không hợp lệ! Vui lòng nhập theo định dạng: DD/MM/YYYY HH:mm',
+            severity: 'error'
+          }))
+          return
+        }
+
+        // Chuyển đổi sang ISO string
+        const validFromISO = convertToISOString(editDiscount.valid_from)
+        const validUntilISO = convertToISOString(editDiscount.valid_until)
+
+        if (!validFromISO || !validUntilISO) {
+          setSnackbar(prev => ({
+            ...prev,
+            open: true,
+            message: 'Có lỗi khi chuyển đổi thời gian!',
+            severity: 'error'
+          }))
+          return
+        }
+
+        if (new Date(validFromISO) >= new Date(validUntilISO)) {
+          setSnackbar(prev => ({
+            ...prev,
+            open: true,
+            message: 'Thời gian kết thúc phải sau thời gian bắt đầu!',
+            severity: 'error'
+          }))
+          return
+        }
+
         await updateDiscount(editDiscount.id, {
           code: editDiscount.code,
           name: editDiscount.name,
           description: editDiscount.description,
           discount_value: editDiscount.discount_value,
           discount_type: editDiscount.discount_type,
-          valid_from: editDiscount.valid_from,
-          valid_until: editDiscount.valid_until,
+          valid_from: validFromISO,
+          valid_until: validUntilISO,
           minimum_order_value: editDiscount.minimum_order_value,
           max_discount_amount: editDiscount.max_discount_amount
         })
         setEditModal(false)
+        setSnackbar(prev => ({
+          ...prev,
+          open: true,
+          message: 'Cập nhật khuyến mãi thành công!',
+          severity: 'success'
+        }))
       } catch (err) {
         console.error('Lỗi khi cập nhật khuyến mãi:', err)
+        setSnackbar(prev => ({
+          ...prev,
+          open: true,
+          message: 'Có lỗi xảy ra khi cập nhật khuyến mãi. Vui lòng thử lại!',
+          severity: 'error'
+        }))
       }
     }
   }
@@ -144,7 +235,7 @@ const ManageDiscountPage: React.FC = () => {
       code: '',
       name: '',
       description: '',
-      discount_value: '',
+      discount_value: 0,
       discount_type: 'PERCENTAGE',
       valid_from: '',
       valid_until: '',
@@ -155,11 +246,115 @@ const ManageDiscountPage: React.FC = () => {
   }
 
   const handleSaveAdd = async () => {
+    // Validation
+    if (!newDiscount.code.trim()) {
+      setSnackbar(prev => ({
+        ...prev,
+        open: true,
+        message: 'Vui lòng nhập mã khuyến mãi!',
+        severity: 'error'
+      }))
+      return
+    }
+    
+    if (!newDiscount.name.trim()) {
+      setSnackbar(prev => ({
+        ...prev,
+        open: true,
+        message: 'Vui lòng nhập tên khuyến mãi!',
+        severity: 'error'
+      }))
+      return
+    }
+    
+    if (newDiscount.discount_value <= 0) {
+      setSnackbar(prev => ({
+        ...prev,
+        open: true,
+        message: 'Giá trị giảm phải lớn hơn 0!',
+        severity: 'error'
+      }))
+      return
+    }
+    
+    if (!newDiscount.valid_from || !newDiscount.valid_until) {
+      setSnackbar(prev => ({
+        ...prev,
+        open: true,
+        message: 'Vui lòng nhập thời gian hiệu lực!',
+        severity: 'error'
+      }))
+      return
+    }
+
+    // Validate format ngày tháng
+    if (!validateDateTimeFormat(newDiscount.valid_from)) {
+      setSnackbar(prev => ({
+        ...prev,
+        open: true,
+        message: 'Định dạng thời gian bắt đầu không hợp lệ! Vui lòng nhập theo định dạng: DD/MM/YYYY HH:mm',
+        severity: 'error'
+      }))
+      return
+    }
+
+    if (!validateDateTimeFormat(newDiscount.valid_until)) {
+      setSnackbar(prev => ({
+        ...prev,
+        open: true,
+        message: 'Định dạng thời gian kết thúc không hợp lệ! Vui lòng nhập theo định dạng: DD/MM/YYYY HH:mm',
+        severity: 'error'
+      }))
+      return
+    }
+
+    // Chuyển đổi sang ISO string để so sánh
+    const validFromISO = convertToISOString(newDiscount.valid_from)
+    const validUntilISO = convertToISOString(newDiscount.valid_until)
+
+    if (!validFromISO || !validUntilISO) {
+      setSnackbar(prev => ({
+        ...prev,
+        open: true,
+        message: 'Có lỗi khi chuyển đổi thời gian!',
+        severity: 'error'
+      }))
+      return
+    }
+    
+    if (new Date(validFromISO) >= new Date(validUntilISO)) {
+      setSnackbar(prev => ({
+        ...prev,
+        open: true,
+        message: 'Thời gian kết thúc phải sau thời gian bắt đầu!',
+        severity: 'error'
+      }))
+      return
+    }
+
     try {
-      await createDiscount(newDiscount)
+      // Format dữ liệu trước khi gửi API
+      const formattedDiscount = {
+        ...newDiscount,
+        valid_from: validFromISO,
+        valid_until: validUntilISO
+      }
+      await createDiscount(formattedDiscount)
       setAddModal(false)
+      setSnackbar(prev => ({
+        ...prev,
+        open: true,
+        message: 'Tạo khuyến mãi thành công!',
+        severity: 'success'
+      }))
     } catch (err) {
       console.error('Lỗi khi tạo khuyến mãi:', err)
+      setSnackbar(prev => ({
+        ...prev,
+        open: true,
+        message: 'Có lỗi xảy ra khi tạo khuyến mãi. Vui lòng thử lại!',
+        severity: 'error'
+      }))
     }
   }
 
@@ -184,6 +379,94 @@ const ManageDiscountPage: React.FC = () => {
       style: 'currency',
       currency: 'VND'
     }).format(amount)
+  }
+
+  // Hàm chuyển đổi format DD/MM/YYYY HH:mm sang ISO string
+  const convertToISOString = (dateTimeString: string): string => {
+    if (!dateTimeString.trim()) return ''
+    
+    try {
+      // Format: DD/MM/YYYY HH:mm
+      const regex = /^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{1,2})$/
+      const match = dateTimeString.match(regex)
+      
+      if (!match) {
+        throw new Error('Định dạng không hợp lệ')
+      }
+      
+      const [, day, month, year, hour, minute] = match
+      const date = new Date(
+        parseInt(year),
+        parseInt(month) - 1, // Month is 0-indexed
+        parseInt(day),
+        parseInt(hour),
+        parseInt(minute)
+      )
+      
+      if (isNaN(date.getTime())) {
+        throw new Error('Ngày tháng không hợp lệ')
+      }
+      
+      return date.toISOString()
+    } catch (error) {
+      console.error('Lỗi chuyển đổi ngày tháng:', error)
+      return ''
+    }
+  }
+
+  // Hàm format input ngày tháng với placeholder
+  const formatDateTimeInput = (value: string, format: string): string => {
+    if (!value) return ''
+    
+    let result = format
+    let valueIndex = 0
+    
+    for (let i = 0; i < format.length && valueIndex < value.length; i++) {
+      if (format[i] === 'D' || format[i] === 'M' || format[i] === 'Y' || format[i] === 'H' || format[i] === 'm') {
+        result = result.substring(0, i) + value[valueIndex] + result.substring(i + 1)
+        valueIndex++
+      }
+    }
+    
+    // Chỉ giữ lại phần đã nhập
+    let lastDigitIndex = -1
+    for (let i = 0; i < result.length; i++) {
+      if (/\d/.test(result[i])) {
+        lastDigitIndex = i
+      }
+    }
+    
+    if (lastDigitIndex >= 0) {
+      return result.substring(0, lastDigitIndex + 1)
+    }
+    
+    return result
+  }
+
+  // Hàm validate format ngày tháng
+  const validateDateTimeFormat = (dateTimeString: string): boolean => {
+    if (!dateTimeString.trim()) return false
+    
+    const regex = /^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{1,2})$/
+    if (!regex.test(dateTimeString)) return false
+    
+    const match = dateTimeString.match(regex)
+    if (!match) return false
+    
+    const [, day, month, year, hour, minute] = match
+    
+    // Kiểm tra giới hạn
+    if (parseInt(day) < 1 || parseInt(day) > 31) return false
+    if (parseInt(month) < 1 || parseInt(month) > 12) return false
+    if (parseInt(year) < 2020 || parseInt(year) > 2030) return false
+    if (parseInt(hour) < 0 || parseInt(hour) > 23) return false
+    if (parseInt(minute) < 0 || parseInt(minute) > 59) return false
+    
+    // Kiểm tra ngày hợp lệ
+    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+    return date.getDate() === parseInt(day) && 
+           date.getMonth() === parseInt(month) - 1 && 
+           date.getFullYear() === parseInt(year)
   }
 
   const handlePageChange = (newPage: number) => {
@@ -364,7 +647,7 @@ const ManageDiscountPage: React.FC = () => {
                       <TableCell sx={{ textAlign: 'center' }}>
                         {discount.discount_type === 'PERCENTAGE' 
                           ? `${discount.discount_value}%` 
-                          : formatCurrency(parseFloat(discount.discount_value))
+                          : formatCurrency(discount.discount_value)
                         }
                       </TableCell>
                       <TableCell sx={{ textAlign: 'center' }}>{formatDate(discount.valid_from)}</TableCell>
@@ -544,7 +827,7 @@ const ManageDiscountPage: React.FC = () => {
                 type='number'
                 value={editDiscount.discount_value}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setEditDiscount({ ...editDiscount, discount_value: e.target.value })
+                  setEditDiscount({ ...editDiscount, discount_value: parseFloat(e.target.value) || 0 })
                 }
                 fullWidth
                 InputProps={{
@@ -553,26 +836,52 @@ const ManageDiscountPage: React.FC = () => {
                   </InputAdornment>,
                 }}
               />
-              <TextField
-                label='Hiệu lực từ'
-                type='datetime-local'
-                value={editDiscount.valid_from.slice(0, 16)}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setEditDiscount({ ...editDiscount, valid_from: e.target.value })
-                }
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-              />
-              <TextField
-                label='Hiệu lực đến'
-                type='datetime-local'
-                value={editDiscount.valid_until.slice(0, 16)}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setEditDiscount({ ...editDiscount, valid_until: e.target.value })
-                }
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-              />
+              <FormControl fullWidth>
+                <InputLabel>Hiệu lực từ</InputLabel>
+                <OutlinedInput
+                  value={editDiscount.valid_from}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    const value = e.target.value.replace(/[^0-9]/g, '')
+                    const formatted = formatDateTimeInput(value, 'DD/MM/YYYY HH:mm')
+                    setEditDiscount({ ...editDiscount, valid_from: formatted })
+                  }}
+                  placeholder='DD/MM/YYYY HH:mm'
+                  inputProps={{
+                    maxLength: 16,
+                    style: { fontFamily: 'monospace' }
+                  }}
+                  endAdornment={
+                    <InputAdornment position="end">
+                      <Typography variant="caption" color="text.secondary">
+                        VD: 03/08/2025 00:00
+                      </Typography>
+                    </InputAdornment>
+                  }
+                />
+              </FormControl>
+              <FormControl fullWidth>
+                <InputLabel>Hiệu lực đến</InputLabel>
+                <OutlinedInput
+                  value={editDiscount.valid_until}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    const value = e.target.value.replace(/[^0-9]/g, '')
+                    const formatted = formatDateTimeInput(value, 'DD/MM/YYYY HH:mm')
+                    setEditDiscount({ ...editDiscount, valid_until: formatted })
+                  }}
+                  placeholder='DD/MM/YYYY HH:mm'
+                  inputProps={{
+                    maxLength: 16,
+                    style: { fontFamily: 'monospace' }
+                  }}
+                  endAdornment={
+                    <InputAdornment position="end">
+                      <Typography variant="caption" color="text.secondary">
+                        VD: 04/08/2025 23:59
+                      </Typography>
+                    </InputAdornment>
+                  }
+                />
+              </FormControl>
               <TextField
                 label='Giá trị đơn hàng tối thiểu'
                 type='number'
@@ -657,7 +966,7 @@ const ManageDiscountPage: React.FC = () => {
               type='number'
               value={newDiscount.discount_value}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setNewDiscount({ ...newDiscount, discount_value: e.target.value })
+                setNewDiscount({ ...newDiscount, discount_value: parseFloat(e.target.value) || 0 })
               }
               fullWidth
               InputProps={{
@@ -666,26 +975,52 @@ const ManageDiscountPage: React.FC = () => {
                 </InputAdornment>,
               }}
             />
-            <TextField
-              label='Hiệu lực từ'
-              type='datetime-local'
-              value={newDiscount.valid_from}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setNewDiscount({ ...newDiscount, valid_from: e.target.value })
-              }
-              fullWidth
-              InputLabelProps={{ shrink: true }}
-            />
-            <TextField
-              label='Hiệu lực đến'
-              type='datetime-local'
-              value={newDiscount.valid_until}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setNewDiscount({ ...newDiscount, valid_until: e.target.value })
-              }
-              fullWidth
-              InputLabelProps={{ shrink: true }}
-            />
+            <FormControl fullWidth>
+              <InputLabel>Hiệu lực từ</InputLabel>
+              <OutlinedInput
+                value={newDiscount.valid_from}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  const value = e.target.value.replace(/[^0-9]/g, '')
+                  const formatted = formatDateTimeInput(value, 'DD/MM/YYYY HH:mm')
+                  setNewDiscount({ ...newDiscount, valid_from: formatted })
+                }}
+                placeholder='DD/MM/YYYY HH:mm'
+                inputProps={{
+                  maxLength: 16,
+                  style: { fontFamily: 'monospace' }
+                }}
+                endAdornment={
+                  <InputAdornment position="end">
+                    <Typography variant="caption" color="text.secondary">
+                      VD: 03/08/2025 00:00
+                    </Typography>
+                  </InputAdornment>
+                }
+              />
+            </FormControl>
+            <FormControl fullWidth>
+              <InputLabel>Hiệu lực đến</InputLabel>
+              <OutlinedInput
+                value={newDiscount.valid_until}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  const value = e.target.value.replace(/[^0-9]/g, '')
+                  const formatted = formatDateTimeInput(value, 'DD/MM/YYYY HH:mm')
+                  setNewDiscount({ ...newDiscount, valid_until: formatted })
+                }}
+                placeholder='DD/MM/YYYY HH:mm'
+                inputProps={{
+                  maxLength: 16,
+                  style: { fontFamily: 'monospace' }
+                }}
+                endAdornment={
+                  <InputAdornment position="end">
+                    <Typography variant="caption" color="text.secondary">
+                      VD: 04/08/2025 23:59
+                    </Typography>
+                  </InputAdornment>
+                }
+              />
+            </FormControl>
             <TextField
               label='Giá trị đơn hàng tối thiểu'
               type='number'
@@ -713,12 +1048,54 @@ const ManageDiscountPage: React.FC = () => {
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setAddModal(false)}>Huỷ</Button>
-          <Button onClick={handleSaveAdd} variant='contained' color='primary'>
-            Lưu
+          <Button onClick={() => setAddModal(false)} disabled={loading}>
+            Huỷ
+          </Button>
+          <Button 
+            onClick={handleSaveAdd} 
+            variant='contained' 
+            color='primary'
+            disabled={loading}
+            startIcon={loading ? <CircularProgress size={20} /> : null}
+          >
+            {loading ? 'Đang lưu...' : 'Lưu'}
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Box
+          sx={{
+            backgroundColor: snackbar.severity === 'success' ? '#4caf50' : 
+                             snackbar.severity === 'error' ? '#f44336' :
+                             snackbar.severity === 'warning' ? '#ff9800' : '#2196f3',
+            color: 'white',
+            padding: 2,
+            borderRadius: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            minWidth: 300
+          }}
+        >
+          <Typography variant="body2">
+            {snackbar.message}
+          </Typography>
+          <Button
+            size="small"
+            onClick={() => setSnackbar(prev => ({ ...prev, open: false }))}
+            sx={{ color: 'white', ml: 2 }}
+          >
+            ✕
+          </Button>
+        </Box>
+      </Snackbar>
     </Box>
   )
 }
