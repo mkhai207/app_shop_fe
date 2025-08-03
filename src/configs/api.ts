@@ -28,6 +28,9 @@ export const CONFIG_API = {
   PRODUCT: {
     INDEX: `${BASE_URL}/products`
   },
+  VARIANT: {
+    INDEX: `${BASE_URL}/variants`
+  },
   FILE: {
     UPLOAD: `${BASE_URL}/upload`
   },

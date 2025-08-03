@@ -5,14 +5,12 @@ import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { useTranslation } from 'react-i18next'
-import CustomPagination from 'src/components/custom-pagination'
 import Spinner from 'src/components/spinner'
-import { PAGE_SIZE_OPTION } from 'src/configs/gridConfig'
 import { ROUTE_CONFIG } from 'src/configs/route'
 import { useAuth } from 'src/hooks/useAuth'
 import { getAllProductsPublic, getProductRecommend } from 'src/services/product'
-import CardProduct from '../../../components/card-product/CardProduct'
 import { TProduct } from 'src/types/product'
+import CardProduct from '../../../components/card-product/CardProduct'
 
 type TProps = {}
 
@@ -22,8 +20,6 @@ const HomePage: NextPage<TProps> = () => {
   const router = useRouter()
   const { user } = useAuth()
 
-  const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTION[0])
-  const [page, setPage] = useState(1)
   const [currentSlide, setCurrentSlide] = useState(0)
   const totalPages = 5
   const productsPerPage = 4
@@ -55,11 +51,6 @@ const HomePage: NextPage<TProps> = () => {
   const [loading, setLoading] = useState(false)
   const [newProducts, setNewProducts] = useState<TProduct[]>([])
 
-  const handleOnchangePagination = (page: number, pageSize: number) => {
-    setPage(page)
-    setPageSize(pageSize)
-  }
-
   const formatFiltersForAPI = (customLimit?: number, customSort?: string) => {
     const params: Record<string, any> = {
       page: 1,
@@ -73,7 +64,7 @@ const HomePage: NextPage<TProps> = () => {
   const handleGetListNewProducts = async () => {
     try {
       setLoading(true)
-      const queryParams = formatFiltersForAPI(20, 'created_at:DESC')
+      const queryParams = formatFiltersForAPI(20, 'sold:DESC')
       const response = await getAllProductsPublic({ params: queryParams })
 
       if (response.status === 'success') {

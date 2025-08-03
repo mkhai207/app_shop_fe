@@ -10,7 +10,8 @@ import {
   MenuItem,
   Select,
   TextField,
-  Typography
+  Typography,
+  Alert
 } from '@mui/material'
 import { NextPage } from 'next'
 import { useRouter } from 'next/router'
@@ -29,6 +30,21 @@ import * as yup from 'yup'
 
 type TProps = {}
 
+interface BuyNowItem {
+  product_id: string
+  color_id: string
+  size_id: string
+  quantity: number
+  product_name: string
+  product_price: number
+  product_thumbnail: string
+  color_name: string
+  size_name: string
+  product_variant_id: string
+
+  // Thêm trường này
+}
+
 const CheckoutPage: NextPage<TProps> = () => {
   const { user } = useAuth()
   const { items } = useSelector((state: RootState) => state.cart)
@@ -37,9 +53,35 @@ const CheckoutPage: NextPage<TProps> = () => {
 
   const [loading, setLoading] = useState(false)
   const [orderSuccess, setOrderSuccess] = useState(false)
+  const [buyNowItems, setBuyNowItems] = useState<BuyNowItem[]>([])
+  const [isBuyNowMode, setIsBuyNowMode] = useState(false)
 
-  const orderTotal = items.reduce((total, item) => total + item.variant.product.price * item.quantity, 0)
+  useEffect(() => {
+    const buyNowData = localStorage.getItem('buyNowItems')
+    if (buyNowData) {
+      try {
+        const parsedData = JSON.parse(buyNowData) as BuyNowItem[]
+        if (parsedData && parsedData.length > 0) {
+          setBuyNowItems(parsedData)
+          setIsBuyNowMode(true)
 
+          localStorage.removeItem('buyNowItems')
+        }
+      } catch (error) {
+        console.error('Error parsing buyNowItems:', error)
+      }
+    }
+  }, [])
+
+  const getOrderTotal = () => {
+    if (isBuyNowMode) {
+      return buyNowItems.reduce((total, item) => total + item.product_price * item.quantity, 0)
+    }
+
+    return items.reduce((total, item) => total + item.variant.product.price * item.quantity, 0)
+  }
+
+  const orderTotal = getOrderTotal()
   const shippingFee = orderTotal > 500000 ? 0 : 30000
 
   const schema = yup.object({
@@ -87,19 +129,28 @@ const CheckoutPage: NextPage<TProps> = () => {
   })
 
   const onSubmit = (data: TCreateOrderForm) => {
-    const orderDetails = items.map(item => ({
-      product_variant_id: item.variant.id,
-      quantity: item.quantity
-    }))
+    let orderDetails = []
 
-    let status = null
+    if (isBuyNowMode) {
+      orderDetails = buyNowItems.map(item => ({
+        product_variant_id: item.product_variant_id,
+
+        quantity: item.quantity
+      }))
+    } else {
+      orderDetails = items.map(item => ({
+        product_variant_id: item.variant.id,
+        quantity: item.quantity
+      }))
+    }
+
+    let status: string | undefined = undefined
     if (user?.role.code === 'ADMIN') {
       status = 'PENDING'
     }
 
     const orderData = {
       ...data,
-
       status,
       discount_code: '',
       orderDetails
@@ -111,14 +162,49 @@ const CheckoutPage: NextPage<TProps> = () => {
 
   useEffect(() => {
     if (orderSuccess) {
-      deleteCartItems()
+      if (!isBuyNowMode) {
+        deleteCartItems()
+      }
     }
-  }, [orderSuccess])
+  }, [orderSuccess, isBuyNowMode])
+
+  // Kiểm tra nếu không có items nào
+  if (!isBuyNowMode && items.length === 0) {
+    return (
+      <Container maxWidth='lg' sx={{ p: 2, mb: 10 }}>
+        <Alert severity='warning' sx={{ mb: 2 }}>
+          Không có sản phẩm nào trong giỏ hàng. Vui lòng thêm sản phẩm vào giỏ hàng trước khi thanh toán.
+        </Alert>
+        <Button variant='contained' onClick={() => router.push('/')}>
+          Quay về trang chủ
+        </Button>
+      </Container>
+    )
+  }
+
+  if (isBuyNowMode && buyNowItems.length === 0) {
+    return (
+      <Container maxWidth='lg' sx={{ p: 2, mb: 10 }}>
+        <Alert severity='warning' sx={{ mb: 2 }}>
+          Không tìm thấy thông tin sản phẩm mua ngay. Vui lòng thử lại.
+        </Alert>
+        <Button variant='contained' onClick={() => router.push('/')}>
+          Quay về trang chủ
+        </Button>
+      </Container>
+    )
+  }
 
   return (
     <>
       {loading && <Spinner />}
       <Container maxWidth='lg' sx={{ p: 2, mb: 10 }}>
+        {isBuyNowMode && (
+          <Alert severity='info' sx={{ mb: 3 }}>
+            Bạn đang thanh toán sản phẩm mua ngay
+          </Alert>
+        )}
+
         <Grid container spacing={3}>
           {/* Left Column - Delivery Information */}
           <Grid item xs={12} lg={8}>
@@ -171,7 +257,7 @@ const CheckoutPage: NextPage<TProps> = () => {
 
                 <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Button variant='text' color='primary' component='a' href='#'>
-                    Giỏ hàng
+                    {isBuyNowMode ? 'Sản phẩm' : 'Giỏ hàng'}
                   </Button>
                   <Button type='submit' variant='contained' color='primary'>
                     Đặt hàng
@@ -184,7 +270,47 @@ const CheckoutPage: NextPage<TProps> = () => {
           {/* Right Column - Order Summary */}
           <Grid item xs={12} lg={4}>
             <Card sx={{ p: 3, position: 'sticky', top: 16 }}>
-              {items && items.length > 0 ? (
+              {isBuyNowMode ? (
+                buyNowItems.map((item, index) => (
+                  <Box key={index} sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                    <Box sx={{ position: 'relative' }}>
+                      <img
+                        src={item.product_thumbnail}
+                        alt={item.product_name}
+                        style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8 }}
+                      />
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          top: -8,
+                          right: -8,
+                          bgcolor: 'grey.500',
+                          color: 'white',
+                          borderRadius: '50%',
+                          width: 20,
+                          height: 20,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: 12
+                        }}
+                      >
+                        {item.quantity}
+                      </Box>
+                    </Box>
+                    <Box sx={{ ml: 2, flex: 1 }}>
+                      <Typography variant='subtitle2'>{item.product_name}</Typography>
+                      <Typography variant='body2' color='text.secondary'>
+                        {item.color_name} / {item.size_name}
+                      </Typography>
+                    </Box>
+                    <Typography variant='subtitle1'>
+                      {(item.product_price * item.quantity).toLocaleString()}VNĐ
+                    </Typography>
+                  </Box>
+                ))
+              ) : // Hiển thị cart items
+              items && items.length > 0 ? (
                 items.map(item => (
                   <Box key={item.id} sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                     <Box sx={{ position: 'relative' }}>
@@ -237,32 +363,17 @@ const CheckoutPage: NextPage<TProps> = () => {
                         <Button variant='contained' color='inherit'>
                           Sử dụng
                         </Button>
-                        {/* <Button variant='contained' color='inherit' disabled={isLoading}>
-                              {isLoading ? <CircularProgress size={24} /> : 'Sử dụng'}
-                            </Button> */}
                       </InputAdornment>
                     )
                   }}
                 />
               </Box>
-              {/* 
-              {voucherStatus.message && (
-                <Alert severity={voucherStatus.severity} sx={{ mb: 3 }}>
-                  {voucherStatus.message}
-                </Alert>
-              )} */}
 
               <Box sx={{ mb: 3 }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                   <Typography>Tạm tính</Typography>
                   <Typography>{orderTotal.toLocaleString()}VNĐ</Typography>
                 </Box>
-                {/* {discount > 0 && (
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                    <Typography>Giảm giá</Typography>
-                    <Typography>-{formatPrice(discount)}</Typography>
-                  </Box>
-                )} */}
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography>Phí vận chuyển</Typography>
                   <Typography>{shippingFee.toLocaleString()}VNĐ</Typography>

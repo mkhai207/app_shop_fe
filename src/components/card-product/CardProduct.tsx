@@ -4,6 +4,9 @@ import { useTranslation } from 'react-i18next'
 import IconifyIcon from 'src/components/Icon'
 import { ROUTE_CONFIG } from 'src/configs/route'
 import { TProduct } from 'src/types/product'
+import AddToCartModal from './AddToCartModal'
+import BuyNowModal from './BuyNowModal'
+import { useState } from 'react'
 
 const StyledCard = styled(Card)(({}) => ({
   height: '100%',
@@ -27,9 +30,27 @@ const CardProduct = (props: TCardProduct) => {
   const { t } = useTranslation()
   const theme = useTheme()
   const router = useRouter()
+  const [addToCartModalOpen, setAddToCartModalOpen] = useState(false)
+  const [buyNowModalOpen, setBuyNowModalOpen] = useState(false)
 
   const handleNavigateDetailProduct = (id: string) => {
     router.push(`${ROUTE_CONFIG.PRODUCT}/${id}`)
+  }
+
+  const handleAddToCart = () => {
+    setAddToCartModalOpen(true)
+  }
+
+  const handleCloseAddToCartModal = () => {
+    setAddToCartModalOpen(false)
+  }
+
+  const handleBuyNow = () => {
+    setBuyNowModalOpen(true)
+  }
+
+  const handleCloseBuyNowModal = () => {
+    setBuyNowModalOpen(false)
   }
 
   return (
@@ -129,6 +150,7 @@ const CardProduct = (props: TCardProduct) => {
             <Button
               fullWidth
               variant='outlined'
+              onClick={handleAddToCart}
               sx={{
                 height: 36,
                 display: 'flex',
@@ -149,6 +171,7 @@ const CardProduct = (props: TCardProduct) => {
             <Button
               fullWidth
               variant='contained'
+              onClick={handleBuyNow}
               sx={{
                 height: 36,
                 display: 'flex',
@@ -170,6 +193,26 @@ const CardProduct = (props: TCardProduct) => {
           </Box>
         </Box>
       </CardContent>
+
+      {/* Add to Cart Modal */}
+      <AddToCartModal
+        open={addToCartModalOpen}
+        onClose={handleCloseAddToCartModal}
+        productId={item?.id || ''}
+        productName={item?.name || ''}
+        productPrice={item?.price || 0}
+        productThumbnail={item?.thumbnail || ''}
+      />
+
+      {/* Buy Now Modal */}
+      <BuyNowModal
+        open={buyNowModalOpen}
+        onClose={handleCloseBuyNowModal}
+        productId={item?.id || ''}
+        productName={item?.name || ''}
+        productPrice={item?.price || 0}
+        productThumbnail={item?.thumbnail || ''}
+      />
     </StyledCard>
   )
 }

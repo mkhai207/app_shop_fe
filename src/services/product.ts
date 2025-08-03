@@ -94,3 +94,17 @@ export const updateProduct = async (productId: string, updateData: any) => {
     return error
   }
 }
+
+export const getVariantId = async (productId: string, colorId: string, sizeId: string) => {
+  try {
+    const res = await instanceAxios.post(`${CONFIG_API.VARIANT.INDEX}/get-variantid`, {
+      product_id: productId,
+      color_id: colorId,
+      size_id: sizeId
+    })
+
+    return res.data
+  } catch (error) {
+    return error
+  }
+}
