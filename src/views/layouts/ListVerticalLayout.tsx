@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { NextPage } from 'next'
-import { Collapse, List, ListItemButton, ListItemIcon, ListItemText } from '@mui/material'
+import { Box, Collapse, List, ListItemButton, ListItemIcon, Typography } from '@mui/material'
 import { MenuItem, VerticalItems } from 'src/configs/layout'
 import IconifyIcon from 'src/components/Icon'
 import { useRouter } from 'next/router'
@@ -23,6 +23,15 @@ const RecursiveListItems = ({
   setOpenItem: React.Dispatch<React.SetStateAction<{ [key: string]: boolean }>>
 }) => {
   const router = useRouter()
+
+  const isActive = (item: MenuItem) => {
+    if (item.path) {
+      return router.pathname === item.path
+    }
+
+    return false
+  }
+
   const handleClick = (item: MenuItem) => {
     if (!disabled) {
       // setOpenItem(prev => ({
@@ -47,17 +56,49 @@ const RecursiveListItems = ({
           <React.Fragment key={item.title}>
             <ListItemButton
               sx={{
-                padding: `8px 10px 8px ${level * 20}px`
+                padding: `8px 10px 8px ${level * 20}px`,
+                backgroundColor: isActive(item) ? 'primary.main' : 'transparent',
+                color: isActive(item) ? 'white' : 'text.primary',
+                fontWeight: isActive(item) ? 'bold' : 'normal',
+                '&:hover': {
+                  backgroundColor: isActive(item) ? 'primary.dark' : 'action.hover'
+                },
+                '&.Mui-selected': {
+                  backgroundColor: isActive(item) ? 'primary.main' : 'transparent',
+                  color: isActive(item) ? 'white' : 'text.primary',
+                  fontWeight: isActive(item) ? 'bold' : 'normal',
+                  '&:hover': {
+                    backgroundColor: isActive(item) ? 'primary.dark' : 'action.hover'
+                  }
+                }
               }}
+              selected={isActive(item)}
               onClick={() => {
                 handleClick(item)
               }}
             >
               <ListItemIcon>
-                <IconifyIcon icon={item.icon} />
+                <Box
+                  sx={{
+                    color: isActive(item) ? 'white' : 'inherit'
+                  }}
+                >
+                  <IconifyIcon icon={item.icon} />
+                </Box>
               </ListItemIcon>
 
-              {!disabled && <ListItemText primary={item?.title} />}
+              {!disabled && (
+                <Typography
+                  variant='body1'
+                  sx={{
+                    color: isActive(item) ? 'white' : 'text.primary',
+                    fontWeight: isActive(item) ? 'bold' : 'normal',
+                    flex: 1
+                  }}
+                >
+                  {item?.title}
+                </Typography>
+              )}
               {item.children && item.children.length > 0 && (
                 <>
                   {openItem[item.title] ? (
