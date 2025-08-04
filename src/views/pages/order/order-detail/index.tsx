@@ -5,7 +5,8 @@ import {
   Phone as PhoneIcon,
   Print as PrintIcon,
   Receipt as ReceiptIcon,
-  ArrowBack as ArrowBackIcon
+  ArrowBack as ArrowBackIcon,
+  Star as StarIcon
 } from '@mui/icons-material'
 import { useTheme } from '@mui/material'
 import {
@@ -24,6 +25,7 @@ import {
   ListItemAvatar,
   ListItemText,
   Paper,
+  Rating,
   Stack,
   Typography
 } from '@mui/material'
@@ -33,13 +35,17 @@ import toast from 'react-hot-toast'
 import IconifyIcon from 'src/components/Icon'
 import Spinner from 'src/components/spinner'
 import { getOrderDetail } from 'src/services/order'
+import { getReviewsByProductId } from 'src/services/review'
 import { getStatusColor, getStatusText } from 'src/utils/status-style'
+import ReviewModal from '../components/ReviewModal'
+import { TReview } from 'src/types/review'
 
 const OrderDetailPage = () => {
   const theme = useTheme()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [orderDetail, setOrderDetail] = useState<any>(null)
+  const [reviewModalOpen, setReviewModalOpen] = useState(false)
 
   const fetchGetDetailOrder = async () => {
     try {
@@ -127,20 +133,38 @@ const OrderDetailPage = () => {
                 Chi tiết đơn hàng #{orderDetail?.id}
               </Typography>
             </Box>
-            <Button
-              variant='contained'
-              startIcon={<PrintIcon />}
-              onClick={handlePrint}
-              size='large'
-              sx={{
-                background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-                '&:hover': {
-                  background: 'linear-gradient(45deg, #1976D2 30%, #0288D1 90%)'
-                }
-              }}
-            >
-              In đơn hàng
-            </Button>
+            <Stack direction='row' spacing={2}>
+              {orderDetail?.status === 'COMPLETED' && (
+                <Button
+                  variant='contained'
+                  startIcon={<StarIcon />}
+                  onClick={() => setReviewModalOpen(true)}
+                  size='large'
+                  sx={{
+                    background: 'linear-gradient(45deg, #FF9800 30%, #FFB74D 90%)',
+                    '&:hover': {
+                      background: 'linear-gradient(45deg, #F57C00 30%, #FF9800 90%)'
+                    }
+                  }}
+                >
+                  Đánh giá
+                </Button>
+              )}
+              <Button
+                variant='contained'
+                startIcon={<PrintIcon />}
+                onClick={handlePrint}
+                size='large'
+                sx={{
+                  background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
+                  '&:hover': {
+                    background: 'linear-gradient(45deg, #1976D2 30%, #0288D1 90%)'
+                  }
+                }}
+              >
+                In đơn hàng
+              </Button>
+            </Stack>
           </Box>
           <Divider />
         </Box>
@@ -512,6 +536,17 @@ const OrderDetailPage = () => {
           </Grid>
         </Grid>
       </Container>
+
+      {/* Review Modal */}
+      {orderDetail && (
+        <ReviewModal
+          open={reviewModalOpen}
+          onClose={() => setReviewModalOpen(false)}
+          orderId={orderDetail.id}
+          productIds={orderDetail.orderDetails.map((item: any) => item.variant.product.id).join(',')}
+          productNames={orderDetail.orderDetails.map((item: any) => item.variant.product.name).join(', ')}
+        />
+      )}
     </>
   )
 }

@@ -31,5 +31,15 @@ export const discountService = {
   deleteDiscount: async (id: number): Promise<{ message: string }> => {
     const response = await axiosInstance.delete(`${CONFIG_API.DISCOUNT.INDEX}/${id}`)
     return response.data
+  },
+
+  // Lấy khuyến mãi theo code
+  getDiscountByCode: async (code: string) => {
+    try {
+      const res = await axiosInstance.get(`${CONFIG_API.DISCOUNT.INDEX}/get-discount/${code}`)
+      return res.data
+    } catch (error) {
+      return error
+    }
   }
-} 
+}

@@ -1,15 +1,23 @@
+export interface TUser {
+  id: string
+  full_name: string
+  email: string
+  avatar: string | null
+}
+
 export interface TReview {
-  id: number
+  id: string
   created_at: string
   created_by: string
   updated_at: string
   updated_by: string
   rating: number
   comment: string
-  user_id?: number
-  order_id?: number
+  images: string | null
+  user_id: string
   product_id: string
-  images: string
+  order_id: string | null
+  user: TUser
 }
 
 export interface NewReview {
@@ -41,4 +49,11 @@ export interface ReviewResponse {
     currentPage: number
     limit: number
   }
-} 
+}
+
+export interface TReviewResponse {
+  status: string
+  message: string
+  error: string | null
+  data: TReview[]
+}

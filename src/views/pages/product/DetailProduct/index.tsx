@@ -22,20 +22,28 @@ import toast from 'react-hot-toast'
 import { useTranslation } from 'react-i18next'
 import IconifyIcon from 'src/components/Icon'
 import Spinner from 'src/components/spinner'
-import { getDetailsProductPublic } from 'src/services/product'
+import { getDetailsProductPublic, getSimilarProducts } from 'src/services/product'
+import { fetchReviewsByProductId, getReviewsByProductId } from 'src/services/review'
 import { TProductDetail } from 'src/types/product'
+import { TReview } from 'src/types/review'
 import { parseSlider } from 'src/utils/parseSlider'
 import TabPanel from '../components/TabPanel'
 import { useDispatch, useSelector } from 'react-redux'
 import { addToCartAsync } from 'src/stores/apps/cart/action'
 import { AppDispatch, RootState } from 'src/stores'
 import { resetCart } from 'src/stores/apps/cart'
+import CardProduct from 'src/components/card-product/CardProduct'
+import { TProduct } from 'src/types/product'
+import { useAuth } from 'src/hooks/useAuth'
+import { PAGE_SIZE_OPTION_MIN } from 'src/configs/gridConfig'
+import CustomPagination from 'src/components/custom-pagination'
 
 type TProps = {}
 
 const DetailProductPage: NextPage<TProps> = () => {
   const theme = useTheme()
   const { t } = useTranslation()
+  const { user } = useAuth()
   const [selectedImage, setSelectedImage] = useState(0)
   const [quantity, setQuantity] = useState(1)
   const [selectedSize, setSelectedSize] = useState('')
@@ -45,11 +53,65 @@ const DetailProductPage: NextPage<TProps> = () => {
   const router = useRouter()
   const dispatch: AppDispatch = useDispatch()
   const { isLoading, isSuccess, isError, message } = useSelector((state: RootState) => state.cart)
-
   const [tabValue, setTabValue] = useState(0)
+  const [productSimilar, setProductSimilar] = useState<{
+    data: any[]
+    total: number
+    totalPages: number
+    currentPage: number
+  }>({
+    data: [],
+    total: 0,
+    totalPages: 0,
+    currentPage: 1
+  })
+  const [reviews, setReviews] = useState<{
+    data: any[]
+    total: number
+    totalPages: number
+    currentPage: number
+  }>({
+    data: [],
+    total: 0,
+    totalPages: 0,
+    currentPage: 1
+  })
+  const [reviewsLoading, setReviewsLoading] = useState(false)
+  const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTION_MIN[0])
+  const [page, setPage] = useState(1)
 
   const handleTabChange = (event: SyntheticEvent, newValue: number) => {
     setTabValue(newValue)
+  }
+
+  // Lọc sizes có sẵn cho color được chọn
+  const getAvailableSizes = () => {
+    if (!selectedColor || !productDetail?.variants) return []
+
+    const availableSizes = productDetail.variants
+      .filter(variant => variant.colorId === selectedColor && variant.stock > 0)
+      .map(variant => ({
+        id: variant.sizeId,
+        name: variant.size.name,
+        stock: variant.stock
+      }))
+
+    return availableSizes
+  }
+
+  // Lấy stock của size được chọn
+  const getSelectedSizeStock = () => {
+    if (!selectedColor || !selectedSize || !productDetail?.variants) return 0
+
+    const variant = productDetail.variants.find(v => v.colorId === selectedColor && v.sizeId === selectedSize)
+
+    return variant?.stock || 0
+  }
+
+  // Handle color change
+  const handleColorChange = (colorId: string) => {
+    setSelectedColor(colorId)
+    setSelectedSize('') // Reset size khi đổi color
   }
 
   const fetchGetDetailProductPublic = async () => {
@@ -57,26 +119,110 @@ const DetailProductPage: NextPage<TProps> = () => {
       setLoading(true)
 
       const response = await getDetailsProductPublic(router?.query?.productId as string)
-      console.log('API Response:', response)
 
       if (response.status === 'success') {
-        console.log('data', response?.data)
         setProductDetail(response?.data)
 
-        toast.success('Tải chi tiết sản phẩm thành công!')
-      } else {
-        toast.error(response.message || 'Có lỗi xảy ra khi tải chi tiết sản phẩm')
+        // Set color đầu tiên làm default nếu có
+        if (response?.data?.colors && response.data.colors.length > 0) {
+          setSelectedColor(response.data.colors[0].id)
+        }
       }
     } catch (error: any) {
       console.error('Error fetching products:', error)
-      toast.error(error?.message || 'Có lỗi xảy ra khi tải sản phẩm')
     } finally {
       setLoading(false)
     }
   }
 
   const handleQuantityChange = (change: number) => {
-    setQuantity(Math.max(1, quantity + change))
+    const maxStock = getSelectedSizeStock()
+    const newQuantity = quantity + change
+    setQuantity(Math.max(1, Math.min(newQuantity, maxStock)))
+  }
+
+  // Reset quantity khi đổi size
+  useEffect(() => {
+    if (selectedSize) {
+      const maxStock = getSelectedSizeStock()
+      if (quantity > maxStock) {
+        setQuantity(Math.max(1, maxStock))
+      }
+    }
+  }, [selectedSize, selectedColor])
+
+  const fetchGetSimilarProduct = async () => {
+    try {
+      setLoading(true)
+
+      const response = await getSimilarProducts(productDetail?.id || '')
+
+      if (response.status === 'success') {
+        setProductSimilar({
+          data: response.data || [],
+          total: response.data.total || 0,
+          totalPages: response.data.totalPages || 0,
+          currentPage: response.data.currentPage || 1
+        })
+      }
+    } catch (error: any) {
+      console.error('Error fetching products:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleOnchangePagination = (page: number, pageSize: number) => {
+    setPage(page)
+    setPageSize(pageSize)
+  }
+
+  const formatFiltersForAPI = () => {
+    const params: Record<string, any> = {
+      page: page || 1,
+      limit: pageSize || 10,
+      sort: 'rating:desc'
+    }
+
+    Object.keys(params).forEach(key => {
+      if (
+        params[key] === undefined ||
+        params[key] === null ||
+        (Array.isArray(params[key]) && params[key].length === 0)
+      ) {
+        delete params[key]
+      }
+    })
+
+    return params
+  }
+
+  const fetchReviews = async (productId: string) => {
+    try {
+      setReviewsLoading(true)
+
+      const queryParams = formatFiltersForAPI()
+      queryParams.product_id = productId
+
+      const response = await fetchReviewsByProductId({
+        params: queryParams
+      })
+
+      if (response.status === 'success') {
+        setReviewsLoading(false)
+        setReviews({
+          data: response.data || [],
+          total: response.meta?.totalItems || 0,
+          totalPages: response.meta?.totalPages || 0,
+          currentPage: response.meta?.currentPage || 1
+        })
+      }
+    } catch (error: any) {
+      console.error('Error fetching products:', error)
+      setReviewsLoading(false)
+    } finally {
+      setReviewsLoading(false)
+    }
   }
 
   const handleAddToCart = () => {
@@ -117,6 +263,13 @@ const DetailProductPage: NextPage<TProps> = () => {
     }
     dispatch(resetCart())
   }, [isSuccess, isError, message])
+
+  useEffect(() => {
+    if (productDetail?.id) {
+      fetchGetSimilarProduct()
+      fetchReviews(productDetail.id)
+    }
+  }, [productDetail])
 
   return (
     <>
@@ -237,7 +390,7 @@ const DetailProductPage: NextPage<TProps> = () => {
                           '&:hover': { transform: 'scale(1.1)' },
                           transition: 'transform 0.2s'
                         }}
-                        onClick={() => setSelectedColor(color.id)}
+                        onClick={() => handleColorChange(color.id)}
                       />
                     </Tooltip>
                   ))}
@@ -264,23 +417,37 @@ const DetailProductPage: NextPage<TProps> = () => {
                     Hướng dẫn chọn size
                   </Button>
                 </Box>
-                <Stack direction='row' spacing={1}>
-                  {productDetail?.sizes.map(size => (
-                    <Button
-                      key={size.id}
-                      variant={selectedSize === size.id ? 'contained' : 'outlined'}
-                      size='small'
-                      onClick={() => setSelectedSize(size.id)}
-                      sx={{
-                        minWidth: 48,
-                        height: 40,
-                        fontWeight: 'medium'
-                      }}
-                    >
-                      {size.name}
-                    </Button>
-                  ))}
-                </Stack>
+                {selectedColor ? (
+                  <Stack direction='row' spacing={1}>
+                    {getAvailableSizes().map(size => (
+                      <Button
+                        key={size.id}
+                        variant={selectedSize === size.id ? 'contained' : 'outlined'}
+                        size='small'
+                        onClick={() => setSelectedSize(size.id)}
+                        sx={{
+                          minWidth: 48,
+                          height: 40,
+                          fontWeight: 'medium'
+                        }}
+                      >
+                        {size.name}
+                        <Typography variant='caption' sx={{ ml: 0.5, opacity: 0.7 }}>
+                          ({size.stock})
+                        </Typography>
+                      </Button>
+                    ))}
+                  </Stack>
+                ) : (
+                  <Typography variant='body2' color='text.secondary'>
+                    Vui lòng chọn màu sắc trước
+                  </Typography>
+                )}
+                {selectedSize && (
+                  <Typography variant='caption' color='success.main' sx={{ mt: 1, display: 'block' }}>
+                    Còn lại: {getSelectedSizeStock()} sản phẩm
+                  </Typography>
+                )}
               </Box>
 
               <Divider sx={{ my: 3 }} />
@@ -290,40 +457,69 @@ const DetailProductPage: NextPage<TProps> = () => {
                 <Typography variant='body1' fontWeight='bold' gutterBottom>
                   Số lượng:
                 </Typography>
-                <Box display='flex' alignItems='center'>
-                  <Paper
-                    variant='outlined'
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      borderRadius: 1
-                    }}
-                  >
-                    <IconButton size='small' onClick={() => handleQuantityChange(-1)} disabled={quantity <= 1}>
-                      <svg width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'>
-                        <line x1='5' y1='12' x2='19' y2='12' />
-                      </svg>
-                    </IconButton>
-                    <TextField
-                      value={quantity}
-                      size='small'
-                      sx={{
-                        width: 60,
-                        '& .MuiOutlinedInput-root': {
-                          '& fieldset': { border: 'none' }
-                        },
-                        '& input': { textAlign: 'center', fontWeight: 'medium' }
-                      }}
-                      inputProps={{ readOnly: true }}
-                    />
-                    <IconButton size='small' onClick={() => handleQuantityChange(1)}>
-                      <svg width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'>
-                        <line x1='12' y1='5' x2='12' y2='19' />
-                        <line x1='5' y1='12' x2='19' y2='12' />
-                      </svg>
-                    </IconButton>
-                  </Paper>
-                </Box>
+                {selectedSize ? (
+                  <>
+                    <Box display='flex' alignItems='center'>
+                      <Paper
+                        variant='outlined'
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          borderRadius: 1
+                        }}
+                      >
+                        <IconButton size='small' onClick={() => handleQuantityChange(-1)} disabled={quantity <= 1}>
+                          <svg
+                            width='18'
+                            height='18'
+                            viewBox='0 0 24 24'
+                            fill='none'
+                            stroke='currentColor'
+                            strokeWidth='2'
+                          >
+                            <line x1='5' y1='12' x2='19' y2='12' />
+                          </svg>
+                        </IconButton>
+                        <TextField
+                          value={quantity}
+                          size='small'
+                          sx={{
+                            width: 60,
+                            '& .MuiOutlinedInput-root': {
+                              '& fieldset': { border: 'none' }
+                            },
+                            '& input': { textAlign: 'center', fontWeight: 'medium' }
+                          }}
+                          inputProps={{ readOnly: true }}
+                        />
+                        <IconButton
+                          size='small'
+                          onClick={() => handleQuantityChange(1)}
+                          disabled={quantity >= getSelectedSizeStock()}
+                        >
+                          <svg
+                            width='18'
+                            height='18'
+                            viewBox='0 0 24 24'
+                            fill='none'
+                            stroke='currentColor'
+                            strokeWidth='2'
+                          >
+                            <line x1='12' y1='5' x2='12' y2='19' />
+                            <line x1='5' y1='12' x2='19' y2='12' />
+                          </svg>
+                        </IconButton>
+                      </Paper>
+                    </Box>
+                    <Typography variant='caption' color='text.secondary' sx={{ mt: 1, display: 'block' }}>
+                      Tối đa: {getSelectedSizeStock()} sản phẩm
+                    </Typography>
+                  </>
+                ) : (
+                  <Typography variant='body2' color='text.secondary'>
+                    Vui lòng chọn size trước
+                  </Typography>
+                )}
               </Box>
 
               {/* Action Buttons */}
@@ -482,14 +678,167 @@ const DetailProductPage: NextPage<TProps> = () => {
               <Typography variant='h6' gutterBottom fontWeight='bold'>
                 Bình Luận Khách Hàng
               </Typography>
-              <Box sx={{ py: 4, textAlign: 'center', color: 'text.secondary' }}>
-                <Typography variant='body1'>
-                  Chưa có bình luận nào. Hãy là người đầu tiên chia sẻ cảm nhận về sản phẩm!
-                </Typography>
+
+              {reviewsLoading ? (
+                <Box display='flex' justifyContent='center' py={4}>
+                  <Spinner />
+                </Box>
+              ) : reviews?.data?.length > 0 ? (
+                <Box>
+                  {reviews?.data?.map((review: any, index: number) => (
+                    <Box key={review.id} sx={{ mb: 3 }}>
+                      <Paper
+                        elevation={1}
+                        sx={{
+                          p: 3,
+                          background: 'linear-gradient(145deg, #f8f9fa 0%, #ffffff 100%)',
+                          '&:hover': {
+                            transform: 'translateY(-2px)',
+                            boxShadow: 2
+                          },
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <Box display='flex' alignItems='flex-start' justifyContent='space-between' mb={2}>
+                          <Box display='flex' alignItems='center'>
+                            <Box
+                              sx={{
+                                width: 40,
+                                height: 40,
+                                borderRadius: '50%',
+                                bgcolor: 'primary.main',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: 'white',
+                                fontWeight: 'bold',
+                                mr: 2
+                              }}
+                            >
+                              {review.user.full_name.charAt(0).toUpperCase()}
+                            </Box>
+                            <Box>
+                              <Typography variant='subtitle1' fontWeight='bold' color='text.primary'>
+                                {review.user.full_name}
+                              </Typography>
+                              <Typography variant='body2' color='text.secondary'>
+                                {new Date(review.created_at).toLocaleDateString('vi-VN')}
+                              </Typography>
+                            </Box>
+                          </Box>
+                          <Box display='flex' alignItems='center'>
+                            <Typography variant='body2' color='text.secondary' sx={{ mr: 1 }}>
+                              {review.rating}/5
+                            </Typography>
+                            <Box sx={{ display: 'flex' }}>
+                              {[...Array(5)].map((_, i) => (
+                                <Box
+                                  key={i}
+                                  component='span'
+                                  sx={{
+                                    color: i < review.rating ? '#FFD700' : '#ddd',
+                                    fontSize: '16px'
+                                  }}
+                                >
+                                  ★
+                                </Box>
+                              ))}
+                            </Box>
+                          </Box>
+                        </Box>
+
+                        <Typography variant='body1' color='text.primary' sx={{ mb: 2, lineHeight: 1.6 }}>
+                          {review.comment}
+                        </Typography>
+
+                        {review.images && (
+                          <Box mt={2}>
+                            <Typography variant='body2' color='text.secondary' mb={1}>
+                              Hình ảnh đánh giá:
+                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                              {review.images.split(',').map((image: any, imgIndex: number) => (
+                                <Box
+                                  key={imgIndex}
+                                  component='img'
+                                  src={image.trim()}
+                                  alt={`Review image ${imgIndex + 1}`}
+                                  sx={{
+                                    width: 80,
+                                    height: 80,
+                                    borderRadius: 1,
+                                    objectFit: 'cover',
+                                    border: '1px solid',
+                                    borderColor: 'grey.300'
+                                  }}
+                                />
+                              ))}
+                            </Box>
+                          </Box>
+                        )}
+
+                        {review.order_id && (
+                          <Box mt={2}>
+                            <Typography
+                              variant='caption'
+                              sx={{
+                                backgroundColor: 'primary.main',
+                                color: 'white',
+                                px: 1,
+                                py: 0.5,
+                                borderRadius: 1,
+                                fontSize: '0.75rem'
+                              }}
+                            >
+                              Đơn hàng #{review.order_id}
+                            </Typography>
+                          </Box>
+                        )}
+                      </Paper>
+                      {index < reviews?.data?.length - 1 && <Divider sx={{ my: 2 }} />}
+                    </Box>
+                  ))}
+                </Box>
+              ) : (
+                <Box sx={{ py: 4, textAlign: 'center', color: 'text.secondary' }}>
+                  <Typography variant='body1'>
+                    Chưa có bình luận nào. Hãy là người đầu tiên chia sẻ cảm nhận về sản phẩm!
+                  </Typography>
+                </Box>
+              )}
+              {/* Pagination */}
+              <Box sx={{ mt: 4, mb: 4 }}>
+                <CustomPagination
+                  onChangePagination={handleOnchangePagination}
+                  pageSizeOptions={PAGE_SIZE_OPTION_MIN}
+                  pageSize={pageSize}
+                  totalPages={reviews?.totalPages}
+                  page={page}
+                  rowLength={10}
+                  isHideShowed
+                />
               </Box>
             </TabPanel>
           </Paper>
         </Container>
+
+        {user && user?.id && (
+          <Container maxWidth='lg' style={{ padding: '20px' }}>
+            <Box textAlign='center' mb={7}>
+              <Typography variant='h4' component='h1' fontWeight='bold' mb={1}>
+                {t('similar-products')}
+              </Typography>
+            </Box>
+
+            <Grid container spacing={3}>
+              {productSimilar.data.map((product: TProduct) => (
+                <Grid item xs={12} sm={6} md={4} lg={3} key={product.id}>
+                  <CardProduct item={product} />
+                </Grid>
+              ))}
+            </Grid>
+          </Container>
+        )}
       </Container>
     </>
   )

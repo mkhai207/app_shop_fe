@@ -36,7 +36,16 @@ const UserLayout: NextPage<TProps> = ({ children }) => {
         }}
       >
         <Toolbar />
-        <Container maxWidth='lg' sx={{ mt: 4, mb: 4 }}>
+        <Container
+          maxWidth={false}
+          sx={{
+            mt: 4,
+            mb: 4,
+            width: '100%',
+            maxWidth: '100% !important',
+            px: 3
+          }}
+        >
           {children}
         </Container>
       </Box>

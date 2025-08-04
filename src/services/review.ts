@@ -1,5 +1,6 @@
 import instanceAxios from 'src/helpers/axios'
 import { TReview, NewReview, ReviewFilter, ReviewResponse } from 'src/types/review'
+import { CONFIG_API } from 'src/configs/api'
 
 export const reviewService = {
   // Lấy danh sách đánh giá
@@ -56,7 +57,33 @@ export const reviewService = {
   getReviewsByUser: async (userId: number, filter?: ReviewFilter) => {
     const response = await instanceAxios.get(`/users/${userId}/reviews`, { params: filter })
     return response.data
-  },
+  }
+}
 
+// Các function riêng lẻ từ main
+export const createReview = async (reviewData: any) => {
+  try {
+    const res = await instanceAxios.post(`${CONFIG_API.REVIEW.INDEX}/create-review`, reviewData)
+    return res.data
+  } catch (error) {
+    return error
+  }
+}
 
-} 
+export const getReviewsByProductId = async (productId: string) => {
+  try {
+    const res = await instanceAxios.get(`${CONFIG_API.REVIEW.INDEX}/get-reviews/${productId}`)
+    return res.data
+  } catch (error) {
+    return error
+  }
+}
+
+export const fetchReviewsByProductId = async (query: any) => {
+  try {
+    const res = await instanceAxios.get(`${CONFIG_API.REVIEW.INDEX}/get-reviews`, query)
+    return res.data
+  } catch (error) {
+    return error
+  }
+}

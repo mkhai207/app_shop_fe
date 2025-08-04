@@ -109,10 +109,6 @@ const OrderHistoryPage = () => {
           totalPages: response.meta?.totalPages || 0,
           currentPage: response.meta?.currentPage || 1
         })
-
-        toast.success('Tải đơn hàng thành công!')
-      } else {
-        toast.error(response.message || 'Có lỗi xảy ra khi tải đơn hàng')
       }
     } catch (error: any) {
       toast.error(error?.message || 'Có lỗi xảy ra khi tải đơn hàng')

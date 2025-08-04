@@ -5,7 +5,11 @@ interface TCustomModal extends ModalProps {
   handleClose: () => void
 }
 
-const StyleModal = styled(Modal)<ModalProps>(() => ({}))
+const StyleModal = styled(Modal)<ModalProps>(() => ({
+  '& .MuiBackdrop-root': {
+    backgroundColor: 'rgba(0, 0, 0, 0.5)'
+  }
+}))
 
 const CustomModal = (props: TCustomModal) => {
   const { children, open, handleClose } = props
@@ -15,7 +19,11 @@ const CustomModal = (props: TCustomModal) => {
       <Box
         sx={{
           height: '100%',
-          width: '100vw'
+          width: '100vw',
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
         }}
       >
         <Box sx={{ maxHeight: '100vh', overflow: 'auto' }}>

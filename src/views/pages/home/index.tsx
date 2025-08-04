@@ -5,9 +5,7 @@ import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { useTranslation } from 'react-i18next'
-import CustomPagination from 'src/components/custom-pagination'
 import Spinner from 'src/components/spinner'
-import { PAGE_SIZE_OPTION } from 'src/configs/gridConfig'
 import { ROUTE_CONFIG } from 'src/configs/route'
 import { useAuth } from 'src/hooks/useAuth'
 import { getAllProductsPublic, getProductRecommend } from 'src/services/product'
@@ -22,8 +20,6 @@ const HomePage: NextPage<TProps> = () => {
   const router = useRouter()
   const { user } = useAuth()
 
-  const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTION[0])
-  const [page, setPage] = useState(1)
   const [currentSlide, setCurrentSlide] = useState(0)
   const totalPages = 5
   const productsPerPage = 4
@@ -55,11 +51,6 @@ const HomePage: NextPage<TProps> = () => {
   const [loading, setLoading] = useState(false)
   const [newProducts, setNewProducts] = useState<TProduct[]>([])
 
-  const handleOnchangePagination = (page: number, pageSize: number) => {
-    setPage(page)
-    setPageSize(pageSize)
-  }
-
   const formatFiltersForAPI = (customLimit?: number, customSort?: string) => {
     const params: Record<string, any> = {
       page: 1,
@@ -73,7 +64,7 @@ const HomePage: NextPage<TProps> = () => {
   const handleGetListNewProducts = async () => {
     try {
       setLoading(true)
-      const queryParams = formatFiltersForAPI(20, 'created_at:DESC')
+      const queryParams = formatFiltersForAPI(20, 'sold:DESC')
       const response = await getAllProductsPublic({ params: queryParams })
 
       if (response.status === 'success') {
@@ -94,10 +85,11 @@ const HomePage: NextPage<TProps> = () => {
       setLoading(true)
 
       const response = await getProductRecommend(user?.id.toString() || '')
+      console.log('response', response)
 
       if (response.status === 'success') {
         setProductFavourite({
-          data: response.data.products || [],
+          data: response.data || [],
           total: response.data.total || 0,
           totalPages: response.data.totalPages || 0,
           currentPage: response.data.currentPage || 1
@@ -116,6 +108,9 @@ const HomePage: NextPage<TProps> = () => {
 
   useEffect(() => {
     handleGetListNewProducts()
+  }, [])
+
+  useEffect(() => {
     handleGetProductRecommend()
   }, [])
 
@@ -160,7 +155,7 @@ const HomePage: NextPage<TProps> = () => {
           {/* Header */}
           <Box textAlign='center' mb={4}>
             <Typography variant='h4' component='h1' fontWeight='bold' mb={1}>
-              {t('new-products')}
+              {t('best-seller')}
             </Typography>
             <Typography variant='body1' color='text.secondary' fontStyle='italic'>
               {t('top-trending')}
@@ -255,29 +250,24 @@ const HomePage: NextPage<TProps> = () => {
           </Box>
         </Container>
 
-        <Container maxWidth='lg' style={{ padding: '20px' }}>
-          <Typography variant='h4' align='center' gutterBottom>
-            CÓ THỂ BAN SẼ THÍCH
-          </Typography>
-          <Grid container spacing={3}>
-            {productFavourite.data.map(product => (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={product.id}>
-                <CardProduct item={product} />
-              </Grid>
-            ))}
-          </Grid>
-          <Box sx={{ mt: 4, mb: 4 }}>
-            <CustomPagination
-              onChangePagination={handleOnchangePagination}
-              pageSizeOptions={PAGE_SIZE_OPTION}
-              pageSize={pageSize}
-              totalPages={productFavourite?.totalPages}
-              page={page}
-              rowLength={10}
-              isHideShowed
-            />
-          </Box>
-        </Container>
+        {/* You may like */}
+        {user && user?.id && (
+          <Container maxWidth='lg' style={{ padding: '20px' }}>
+            <Box textAlign='center' mb={7}>
+              <Typography variant='h4' component='h1' fontWeight='bold' mb={1}>
+                {t('you-may-like')}
+              </Typography>
+            </Box>
+
+            <Grid container spacing={3}>
+              {productFavourite.data.map((product: TProduct) => (
+                <Grid item xs={12} sm={6} md={4} lg={3} key={product.id}>
+                  <CardProduct item={product} />
+                </Grid>
+              ))}
+            </Grid>
+          </Container>
+        )}
       </Box>
     </>
   )

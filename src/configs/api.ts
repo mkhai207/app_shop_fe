@@ -33,7 +33,29 @@ export const CONFIG_API = {
     INDEX: `${BASE_URL}/categories`,
     GET_CATEGORIES: `${BASE_URL}/categories/get-categories`
   },
+  CATEGORY: {
+    INDEX: `${BASE_URL}/categories`
+  },
+  BRAND: {
+    INDEX: `${BASE_URL}/brands`
+  },
+  PRODUCT: {
+    INDEX: `${BASE_URL}/products`
+  },
+  VARIANT: {
+    INDEX: `${BASE_URL}/variants`
+  },
+  FILE: {
+    UPLOAD: `${BASE_URL}/upload`
+  },
+  DISCOUNT: {
+    INDEX: `${BASE_URL}/discounts`
+  },
+  REVIEW: {
+    INDEX: `${BASE_URL}/reviews`
+  },
   AI_RECOMMEND: {
-    INDEX: `${AI_URL}/recommendations`
+    INDEX: `${AI_URL}/recommendations`,
+    GET_SIMILAR_PRODUCTS: `${AI_URL}/recommendations_by_product`
   }
 }

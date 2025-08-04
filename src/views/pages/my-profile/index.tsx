@@ -1,5 +1,16 @@
 import { yupResolver } from '@hookform/resolvers/yup'
-import { Avatar, Box, Button, FormControl, Grid, InputLabel, MenuItem, Select, useTheme } from '@mui/material'
+import {
+  Avatar,
+  Box,
+  Button,
+  FormControl,
+  Grid,
+  InputLabel,
+  MenuItem,
+  Select,
+  useTheme,
+  Typography
+} from '@mui/material'
 import { NextPage } from 'next'
 import { useEffect, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
@@ -13,11 +24,11 @@ import WrapperFileUpload from 'src/components/wrapper-file-upload'
 import { CONFIG_API } from 'src/configs/api'
 import { EMAIL_REG } from 'src/configs/regex'
 import instanceAxios from 'src/helpers/axios'
+import { useFileUpload } from 'src/hooks/useFileUpload'
 import { AppDispatch, RootState } from 'src/stores'
 import { resetInitialState } from 'src/stores/apps/auth'
 import { updateMeAuthAsync } from 'src/stores/apps/auth/action'
 import { toDate } from 'src/utils/date'
-import AccountLayout from 'src/views/layouts/AccountLayout'
 import * as yup from 'yup'
 
 type TProps = {}
@@ -37,7 +48,9 @@ const MyProfilePage: NextPage<TProps> = () => {
 
   const [loading, setLoading] = useState(false)
   const [avatar, setAvatar] = useState<string | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const dispatch: AppDispatch = useDispatch()
+  const { uploadFile, isUploading, error: uploadError } = useFileUpload()
   const { isLoading, isErrorUpdateMe, messageUpdateMe, isSuccessUpdateMe } = useSelector(
     (state: RootState) => state.auth
   )
@@ -64,6 +77,7 @@ const MyProfilePage: NextPage<TProps> = () => {
     handleSubmit,
     control,
     reset,
+    setValue,
     formState: { errors }
   } = useForm({
     defaultValues,
@@ -71,14 +85,63 @@ const MyProfilePage: NextPage<TProps> = () => {
     resolver: yupResolver(schema)
   })
 
-  const onSubmit = (data: any) => {
-    dispatch(updateMeAuthAsync(data))
+  const onSubmit = async (data: any) => {
+    try {
+      let avatarUrl = null
+
+      if (selectedFile) {
+        const uploadResponse = await uploadFile(selectedFile)
+        if (uploadResponse?.data?.url) {
+          avatarUrl = uploadResponse.data.url
+        } else {
+          toast.error('Không thể upload ảnh. Vui lòng thử lại')
+
+          return
+        }
+      }
+
+      const updateData: any = {
+        fullName: data.fullname,
+        email: data.email
+      }
+
+      if (data.phone) updateData.phone = data.phone
+      if (data.birthday) updateData.birthday = data.birthday
+      if (data.gender) updateData.gender = data.gender
+      if (avatarUrl) updateData.avatar = avatarUrl
+
+      dispatch(updateMeAuthAsync(updateData))
+    } catch (error) {
+      console.error('Error updating profile:', error)
+      toast.error('Có lỗi xảy ra khi cập nhật thông tin')
+    }
   }
 
   const handleUploadAvatar = (file: File) => {
     if (file) {
+      // Kiểm tra kích thước file (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('File quá lớn. Vui lòng chọn file nhỏ hơn 5MB')
+
+        return
+      }
+
+      // Kiểm tra định dạng file
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png']
+      if (!allowedTypes.includes(file.type)) {
+        toast.error('Chỉ chấp nhận file JPG, JPEG hoặc PNG')
+
+        return
+      }
+
+      setSelectedFile(file)
       const url = URL.createObjectURL(file)
       setAvatar(url)
+
+      // Cập nhật form value
+      setValue('avatar', file)
+
+      toast.success('Ảnh đã được tải lên thành công')
     }
   }
 
@@ -116,6 +179,9 @@ const MyProfilePage: NextPage<TProps> = () => {
       } else {
         toast.success(messageUpdateMe)
         fetchGetAuthMe()
+
+        // Reset selected file sau khi update thành công
+        setSelectedFile(null)
       }
     }
     dispatch(resetInitialState())
@@ -123,7 +189,7 @@ const MyProfilePage: NextPage<TProps> = () => {
 
   return (
     <>
-      {isLoading || (loading && <Spinner />)}
+      {(isLoading || loading || isUploading) && <Spinner />}
       <Box
         sx={{
           minHeight: '50vh',
@@ -157,7 +223,15 @@ const MyProfilePage: NextPage<TProps> = () => {
                   }}
                 >
                   {avatar ? (
-                    <Avatar src={avatar} sx={{ width: 100, height: 100 }}>
+                    <Avatar
+                      src={avatar}
+                      sx={{
+                        width: 100,
+                        height: 100,
+                        border: '3px solid',
+                        borderColor: 'primary.main'
+                      }}
+                    >
                       <IconifyIcon icon='ph:user-thin' fontSize={70} />
                     </Avatar>
                   ) : (
@@ -175,15 +249,31 @@ const MyProfilePage: NextPage<TProps> = () => {
                   >
                     <Button
                       variant='outlined'
-                      onClick={() => {}}
+                      disabled={isUploading}
                       sx={{
                         width: 'auto',
-                        borderRadius: '8px'
+                        borderRadius: '8px',
+                        px: 3
                       }}
                     >
-                      {t('Upload')}
+                      <IconifyIcon icon='mdi:camera' fontSize={18} />
+                      <Box sx={{ ml: 1 }}>{isUploading ? 'Đang upload...' : t('Upload Avatar')}</Box>
                     </Button>
                   </WrapperFileUpload>
+
+                  {uploadError && (
+                    <Typography variant='caption' color='error'>
+                      {uploadError}
+                    </Typography>
+                  )}
+
+                  {selectedFile && (
+                    <Box sx={{ textAlign: 'center' }}>
+                      <Typography variant='caption' color='success.main'>
+                        File đã chọn: {selectedFile.name}
+                      </Typography>
+                    </Box>
+                  )}
                 </Box>
               </Grid>
 
@@ -316,6 +406,7 @@ const MyProfilePage: NextPage<TProps> = () => {
                   <Button
                     type='submit'
                     variant='contained'
+                    disabled={isLoading}
                     sx={{
                       px: 4,
                       py: 1.2,
@@ -323,7 +414,7 @@ const MyProfilePage: NextPage<TProps> = () => {
                       fontSize: '1rem'
                     }}
                   >
-                    {t('Change')}
+                    {isLoading ? 'Đang cập nhật...' : t('Change')}
                   </Button>
                 </Box>
               </Grid>
