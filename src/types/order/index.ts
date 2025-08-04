@@ -20,6 +20,17 @@ export type TCreateOrder = {
   discount_code?: string
 }
 
+export type TCreateOrderSystem = {
+  status?: string
+  paymentMethod: string
+  orderDetails: TOrderDetail[]
+  shipping_address: string
+  name: string
+  phone: string
+  user: number
+  discount_code?: string
+}
+
 export type TParams = {}
 
 export type TOrder = {

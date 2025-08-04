@@ -2,6 +2,7 @@ import axios from 'axios'
 import { CONFIG_API } from 'src/configs/api'
 import instanceAxios from 'src/helpers/axios'
 import { TParamsGetProducts } from 'src/types/product'
+import qs from 'qs'
 
 export const getAllProductsPublic = async (data: {
   params: TParamsGetProducts
@@ -101,6 +102,19 @@ export const getVariantId = async (productId: string, colorId: string, sizeId: s
       product_id: productId,
       color_id: colorId,
       size_id: sizeId
+    })
+
+    return res.data
+  } catch (error) {
+    return error
+  }
+}
+
+export const getVariantsByProductId = async (params: { productId: string }) => {
+  try {
+    const res = await instanceAxios.get(`${CONFIG_API.VARIANT.INDEX}/get-variants`, {
+      params,
+      paramsSerializer: params => qs.stringify(params, { encode: false })
     })
 
     return res.data
