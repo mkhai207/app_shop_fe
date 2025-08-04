@@ -97,7 +97,7 @@ const ActiveCell = ({ active, onClick, loading }: { active: boolean; onClick: ()
         }}
         onClick={active ? undefined : onClick}
       >
-        {active ? 'Hoạt động' : (loading ? 'Đang kích hoạt...' : 'Không hoạt động')}
+        {active ? 'Hoạt động' : loading ? 'Đang kích hoạt...' : 'Không hoạt động'}
       </Typography>
     </Tooltip>
   </TableCell>
@@ -150,18 +150,22 @@ const ManageUserPage: React.FC = () => {
 
   // Handlers
   const handleDelete = async (id: string) => {
-    if (window.confirm('Bạn có chắc muốn vô hiệu hóa người dùng này? (Người dùng sẽ không thể đăng nhập nhưng dữ liệu vẫn được giữ lại)')) {
+    if (
+      window.confirm(
+        'Bạn có chắc muốn vô hiệu hóa người dùng này? (Người dùng sẽ không thể đăng nhập nhưng dữ liệu vẫn được giữ lại)'
+      )
+    ) {
       try {
         setLoading(true)
         setError('')
-        
+
         // Call API to deactivate user (soft delete)
         await deleteUserProfile(id)
-        
+
         // Reload users list after successful deactivation
         const response = await fetchUsers()
         setUsers(response.data)
-        
+
         // Show success message (optional)
         console.log('User deactivated successfully')
       } catch (err: any) {
@@ -182,7 +186,7 @@ const ManageUserPage: React.FC = () => {
       try {
         setLoading(true)
         setError('')
-        
+
         // Prepare data for API
         const updateData: {
           fullname?: string
@@ -192,7 +196,7 @@ const ManageUserPage: React.FC = () => {
           gender?: string
           active?: boolean
         } = {}
-        
+
         // Only include fields that have been changed
         if (editUser.full_name !== users.find(u => u.id === editUser.id)?.full_name) {
           updateData.fullname = editUser.full_name || undefined
@@ -212,14 +216,14 @@ const ManageUserPage: React.FC = () => {
         if (editUser.active !== users.find(u => u.id === editUser.id)?.active) {
           updateData.active = editUser.active
         }
-        
+
         // Call API to update user
         await updateUserProfile(editUser.id, updateData)
-        
+
         // Reload users list after successful update
         const response = await fetchUsers()
         setUsers(response.data)
-        
+
         setEditModal(false)
       } catch (err: any) {
         setError(err.response?.data?.message || err.message || 'Có lỗi xảy ra khi cập nhật người dùng')
@@ -299,7 +303,7 @@ const ManageUserPage: React.FC = () => {
 
   const validateForm = (): boolean => {
     const errors: ValidationErrors = {}
-    
+
     errors.fullName = validateFullName(newUser.fullName)
     errors.email = validateEmail(newUser.email)
     errors.phone = validatePhone(newUser.phone)
@@ -307,22 +311,22 @@ const ManageUserPage: React.FC = () => {
     errors.confirmPassword = validateConfirmPassword(newUser.password, newUser.confirmPassword)
 
     setValidationErrors(errors)
-    
+
     return !Object.values(errors).some(error => error)
   }
 
   // Helper function to map API field names to form field names
   const mapApiFieldToFormField = (apiField: string): keyof ValidationErrors | null => {
     const fieldMapping: { [key: string]: keyof ValidationErrors } = {
-      'fullName': 'fullName',
-      'full_name': 'fullName',
-      'email': 'email',
-      'phone': 'phone',
-      'password': 'password',
-      'confirmPassword': 'confirmPassword',
-      'confirm_password': 'confirmPassword'
+      fullName: 'fullName',
+      full_name: 'fullName',
+      email: 'email',
+      phone: 'phone',
+      password: 'password',
+      confirmPassword: 'confirmPassword',
+      confirm_password: 'confirmPassword'
     }
-    
+
     return fieldMapping[apiField] || null
   }
 
@@ -357,12 +361,12 @@ const ManageUserPage: React.FC = () => {
       // Handle API validation errors
       if (err.response?.data?.errors) {
         const apiErrors: ValidationErrors = {}
-        
+
         // Parse API error messages and map to form fields
         Object.keys(err.response.data.errors).forEach(apiField => {
           const errorMessage = err.response.data.errors[apiField]
           const formField = mapApiFieldToFormField(apiField)
-          
+
           if (formField) {
             if (Array.isArray(errorMessage)) {
               // If error is an array, take the first message
@@ -373,7 +377,7 @@ const ManageUserPage: React.FC = () => {
             }
           }
         })
-        
+
         setValidationErrors(apiErrors)
       } else {
         // Handle general errors
@@ -395,14 +399,14 @@ const ManageUserPage: React.FC = () => {
       try {
         setLoading(true)
         setError('')
-        
+
         // Call API to activate user
         await updateUserProfile(id, { active: true })
-        
+
         // Reload users list after successful activation
         const response = await fetchUsers()
         setUsers(response.data)
-        
+
         // Show success message (optional)
         console.log('User activated successfully')
       } catch (err: any) {
@@ -437,7 +441,7 @@ const ManageUserPage: React.FC = () => {
     if (event.key === 'Enter') {
       const input = event.target as HTMLInputElement
       const pageNumber = parseInt(input.value)
-      
+
       if (!isNaN(pageNumber) && pageNumber >= 1 && pageNumber <= totalPages) {
         setCurrentPage(pageNumber)
         input.value = '' // Clear input after successful navigation
@@ -463,8 +467,8 @@ const ManageUserPage: React.FC = () => {
       </Typography>
 
       {error && (
-        <Box 
-          sx={{ 
+        <Box
+          sx={{
             mb: 2,
             p: 2,
             borderRadius: 1,
@@ -476,7 +480,7 @@ const ManageUserPage: React.FC = () => {
             gap: 1
           }}
         >
-          <Typography variant="body2" sx={{ fontWeight: 500 }}>
+          <Typography variant='body2' sx={{ fontWeight: 500 }}>
             {error}
           </Typography>
         </Box>
@@ -521,7 +525,7 @@ const ManageUserPage: React.FC = () => {
       </Box>
 
       {loading ? (
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+        <Box display='flex' justifyContent='center' alignItems='center' minHeight='200px'>
           <CircularProgress />
         </Box>
       ) : (
@@ -584,7 +588,7 @@ const ManageUserPage: React.FC = () => {
                           <span style={ellipsisStyle}>{user.updated_by || 'N/A'}</span>
                         </Tooltip>
                       </TableCell>
-                                              <ActiveCell active={user.active} onClick={() => handleToggleActive(user.id)} loading={loading} />
+                      <ActiveCell active={user.active} onClick={() => handleToggleActive(user.id)} loading={loading} />
                       <AvatarCell src={user.avatar} alt={user.full_name} />
                       <TableCell sx={{ textAlign: 'center' }}>
                         {user.birthday ? formatDate(user.birthday) : 'N/A'}
@@ -606,10 +610,10 @@ const ManageUserPage: React.FC = () => {
                         </Tooltip>
                       </TableCell>
                       <TableCell sx={{ textAlign: 'center' }}>
-                        <Chip 
-                          label={user.role.name} 
+                        <Chip
+                          label={user.role.name}
                           color={user.role.code === 'ADMIN' ? 'primary' : 'default'}
-                          size="small"
+                          size='small'
                         />
                       </TableCell>
                       <TableCell sx={{ textAlign: 'center' }}>
@@ -617,15 +621,15 @@ const ManageUserPage: React.FC = () => {
                           <Button variant='outlined' color='warning' size='small' onClick={() => handleEdit(user)}>
                             Sửa
                           </Button>
-                                                     <Button
-                             variant='outlined'
-                             color='error'
-                             size='small'
-                             onClick={() => handleDelete(user.id)}
-                             disabled={loading}
-                           >
-                             {loading ? 'Đang vô hiệu...' : 'Vô hiệu'}
-                           </Button>
+                          <Button
+                            variant='outlined'
+                            color='error'
+                            size='small'
+                            onClick={() => handleDelete(user.id)}
+                            disabled={loading}
+                          >
+                            {loading ? 'Đang vô hiệu...' : 'Vô hiệu'}
+                          </Button>
                         </Box>
                       </TableCell>
                     </TableRow>
@@ -641,57 +645,59 @@ const ManageUserPage: React.FC = () => {
             </Table>
           </TableContainer>
 
-                     {totalPages > 1 && (
-             <Box sx={{ mt: 4, mb: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-               <Typography variant="body1" color="text.secondary" sx={{ fontSize: '1rem', fontWeight: 500 }}>
-                 Hiển thị {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredUsers.length)} trong tổng số {filteredUsers.length} người dùng
-               </Typography>
-               <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                 <Button
-                   variant="outlined"
-                   disabled={currentPage === 1}
-                   onClick={() => handlePageChange(currentPage - 1)}
-                 >
-                   Trước
-                 </Button>
-                 
-                 {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNum) => (
-                   <Button
-                     key={pageNum}
-                     variant={currentPage === pageNum ? "contained" : "outlined"}
-                     onClick={() => handlePageChange(pageNum)}
-                     sx={{ minWidth: 40 }}
-                   >
-                     {pageNum}
-                   </Button>
-                 ))}
-                 
-                 <Button
-                   variant="outlined"
-                   disabled={currentPage === totalPages}
-                   onClick={() => handlePageChange(currentPage + 1)}
-                 >
-                   Sau
-                 </Button>
-               </Box>
-               
-                               {/* Manual page input */}
-                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                  <Typography variant="body1" color="text.secondary" sx={{ fontSize: '1rem', fontWeight: 500 }}>
-                    Chuyển đến trang:
-                  </Typography>
-                  <TextField
-                    size="small"
-                    sx={{ width: 80 }}
-                    placeholder={currentPage.toString()}
-                    onKeyDown={handleManualPageInput}
-                    InputProps={{
-                      endAdornment: <InputAdornment position="end">/ {totalPages}</InputAdornment>,
-                    }}
-                  />
-                </Box>
-             </Box>
-           )}
+          {totalPages > 1 && (
+            <Box sx={{ mt: 4, mb: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+              <Typography variant='body1' color='text.secondary' sx={{ fontSize: '1rem', fontWeight: 500 }}>
+                Hiển thị {(currentPage - 1) * itemsPerPage + 1} -{' '}
+                {Math.min(currentPage * itemsPerPage, filteredUsers.length)} trong tổng số {filteredUsers.length} người
+                dùng
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <Button
+                  variant='outlined'
+                  disabled={currentPage === 1}
+                  onClick={() => handlePageChange(currentPage - 1)}
+                >
+                  Trước
+                </Button>
+
+                {Array.from({ length: totalPages }, (_, index) => index + 1).map(pageNum => (
+                  <Button
+                    key={pageNum}
+                    variant={currentPage === pageNum ? 'contained' : 'outlined'}
+                    onClick={() => handlePageChange(pageNum)}
+                    sx={{ minWidth: 40 }}
+                  >
+                    {pageNum}
+                  </Button>
+                ))}
+
+                <Button
+                  variant='outlined'
+                  disabled={currentPage === totalPages}
+                  onClick={() => handlePageChange(currentPage + 1)}
+                >
+                  Sau
+                </Button>
+              </Box>
+
+              {/* Manual page input */}
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <Typography variant='body1' color='text.secondary' sx={{ fontSize: '1rem', fontWeight: 500 }}>
+                  Chuyển đến trang:
+                </Typography>
+                <TextField
+                  size='small'
+                  sx={{ width: 80 }}
+                  placeholder={currentPage.toString()}
+                  onKeyDown={handleManualPageInput}
+                  InputProps={{
+                    endAdornment: <InputAdornment position='end'>/ {totalPages}</InputAdornment>
+                  }}
+                />
+              </Box>
+            </Box>
+          )}
         </>
       )}
 
@@ -768,12 +774,7 @@ const ManageUserPage: React.FC = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setEditModal(false)}>Huỷ</Button>
-          <Button 
-            onClick={handleSaveEdit} 
-            variant='contained' 
-            color='primary'
-            disabled={loading}
-          >
+          <Button onClick={handleSaveEdit} variant='contained' color='primary' disabled={loading}>
             {loading ? 'Đang cập nhật...' : 'Lưu'}
           </Button>
         </DialogActions>
@@ -793,7 +794,7 @@ const ManageUserPage: React.FC = () => {
                 // Trigger validation immediately
                 setTimeout(() => validateField('fullName', value), 0)
               }}
-              onBlur={(e) => validateField('fullName', e.target.value)}
+              onBlur={e => validateField('fullName', e.target.value)}
               fullWidth
               required
               error={!!validationErrors.fullName}
@@ -813,7 +814,7 @@ const ManageUserPage: React.FC = () => {
                 setNewUser({ ...newUser, email: value })
                 validateField('email', value)
               }}
-              onBlur={(e) => validateField('email', e.target.value)}
+              onBlur={e => validateField('email', e.target.value)}
               fullWidth
               required
               error={!!validationErrors.email}
@@ -827,7 +828,7 @@ const ManageUserPage: React.FC = () => {
                 setNewUser({ ...newUser, phone: value })
                 validateField('phone', value)
               }}
-              onBlur={(e) => validateField('phone', e.target.value)}
+              onBlur={e => validateField('phone', e.target.value)}
               fullWidth
               required
               error={!!validationErrors.phone}
@@ -846,7 +847,7 @@ const ManageUserPage: React.FC = () => {
                   validateField('confirmPassword', newUser.confirmPassword)
                 }
               }}
-              onBlur={(e) => validateField('password', e.target.value)}
+              onBlur={e => validateField('password', e.target.value)}
               fullWidth
               required
               error={!!validationErrors.password}
@@ -861,7 +862,7 @@ const ManageUserPage: React.FC = () => {
                 setNewUser({ ...newUser, confirmPassword: value })
                 validateField('confirmPassword', value)
               }}
-              onBlur={(e) => validateField('confirmPassword', e.target.value)}
+              onBlur={e => validateField('confirmPassword', e.target.value)}
               fullWidth
               required
               error={!!validationErrors.confirmPassword}
@@ -871,11 +872,13 @@ const ManageUserPage: React.FC = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setAddModal(false)}>Huỷ</Button>
-          <Button 
-            onClick={handleSaveAdd} 
-            variant='contained' 
+          <Button
+            onClick={handleSaveAdd}
+            variant='contained'
             color='primary'
-            disabled={loading || Object.keys(validationErrors).some(key => validationErrors[key as keyof ValidationErrors])}
+            disabled={
+              loading || Object.keys(validationErrors).some(key => validationErrors[key as keyof ValidationErrors])
+            }
           >
             {loading ? 'Đang tạo...' : 'Lưu'}
           </Button>
