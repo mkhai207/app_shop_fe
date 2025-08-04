@@ -29,6 +29,7 @@ export interface CreateOrderResponse {
 export const getOrders = async (): Promise<GetOrdersResponse> => {
   try {
     const res = await instanceAxios.get(CONFIG_API.ORDER.GET_ORDERS)
+
     return res.data
   } catch (error) {
     throw error
@@ -38,6 +39,7 @@ export const getOrders = async (): Promise<GetOrdersResponse> => {
 export const createOrder = async (orderData: TCreateOrder): Promise<CreateOrderResponse> => {
   try {
     const res = await instanceAxios.post(`${CONFIG_API.ORDER.INDEX}/create`, orderData)
+
     return res.data
   } catch (error) {
     throw error
