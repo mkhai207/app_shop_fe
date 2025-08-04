@@ -37,3 +37,40 @@ export const getUsers = async (): Promise<TGetUsersResponse> => {
     throw error
   }
 }
+
+export const createUser = async (data: TRegisterAuth) => {
+  try {
+    const res = await instanceAxios.post(`${CONFIG_API.AUTH.INDEX}/register`, data)
+    return res.data
+  } catch (error) {
+    throw error
+  }
+}
+
+export const updateUser = async (id: string, data: {
+  fullname?: string
+  phone?: string
+  avatar?: string
+  birthday?: string
+  gender?: string
+  active?: boolean
+}) => {
+  try {
+    const res = await instanceAxios.put(`${CONFIG_API.USER.INDEX}/update/${id}`, data)
+    return res.data
+  } catch (error) {
+    throw error
+  }
+}
+
+export const deleteUser = async (id: string) => {
+  try {
+    // Soft delete: chỉ update trạng thái active = false thay vì xóa vĩnh viễn
+    const res = await instanceAxios.put(`${CONFIG_API.USER.INDEX}/update/${id}`, {
+      active: false
+    })
+    return res.data
+  } catch (error) {
+    throw error
+  }
+}
