@@ -44,7 +44,8 @@ export const useDiscount = () => {
     setError('')
     try {
       const response = await discountService.updateDiscount(id, discount)
-      setDiscounts(prev => prev.map(d => d.id === id ? response.data : d))
+      setDiscounts(prev => prev.map(d => (d.id === id ? response.data : d)))
+
       return response.data
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || err.message || 'Không thể cập nhật khuyến mãi'
@@ -83,4 +84,4 @@ export const useDiscount = () => {
     updateDiscount,
     deleteDiscount
   }
-} 
+}

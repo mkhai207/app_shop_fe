@@ -25,8 +25,12 @@ import {
   CircularProgress,
   Chip,
   Alert,
-  InputAdornment
+  IconButton,
+  Snackbar
 } from '@mui/material'
+import { Edit, Delete, Add } from '@mui/icons-material'
+import CustomPagination from 'src/components/custom-pagination'
+import { PAGE_SIZE_OPTION } from 'src/configs/gridConfig'
 
 import { useCategory } from 'src/hooks/useCategory'
 import { TCategory } from 'src/types/category'
@@ -35,14 +39,6 @@ import { TCategory } from 'src/types/category'
 interface NewCategory {
   code: string
   name: string
-}
-
-const cellStyle = {
-  maxWidth: 150,
-  whiteSpace: 'nowrap',
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  textAlign: 'center' as const
 }
 
 const ellipsisStyle: React.CSSProperties = {
@@ -54,17 +50,9 @@ const ellipsisStyle: React.CSSProperties = {
   verticalAlign: 'middle'
 }
 
-const TooltipCell = ({ value }: { value: string | number }) => (
-  <TableCell sx={cellStyle}>
-    <Tooltip title={String(value)} arrow placement='bottom'>
-      <span>{value}</span>
-    </Tooltip>
-  </TableCell>
-)
-
 const ManageCategoryPage: React.FC = () => {
   // State declarations
-  const { fetchCategories, categories, loading, error, updateCategories, createCategory, updateCategory, deleteCategory } = useCategory()
+  const { fetchCategories, categories, loading, createCategory, updateCategory, deleteCategory } = useCategory()
   const [editModal, setEditModal] = useState(false)
   const [editCategory, setEditCategory] = useState<TCategory | null>(null)
   const [addModal, setAddModal] = useState(false)
@@ -74,7 +62,13 @@ const ManageCategoryPage: React.FC = () => {
   })
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 10 // Cố định 10 items mỗi trang
+  const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTION[0])
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [categoryToDelete, setCategoryToDelete] = useState<{ id: number; name: string; code: string } | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState<number | null>(null)
+  const [showError, setShowError] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
+  const itemsPerPage = pageSize
 
   // Load categories from API
   useEffect(() => {
@@ -90,28 +84,57 @@ const ManageCategoryPage: React.FC = () => {
   }, [fetchCategories])
 
   // Handlers
-  const handleDelete = async (id: number) => {
-    // Hiển thị confirm dialog với thông tin chi tiết hơn
+  const handleDelete = (id: number) => {
     const categoryToDelete = categories.find(c => c.id === id)
-    const confirmMessage = categoryToDelete 
-      ? `Bạn có chắc chắn muốn xóa phân loại "${categoryToDelete.name}" (${categoryToDelete.code})?\n\n⚠️ Lưu ý: Đây là thao tác xóa vĩnh viễn và không thể khôi phục!`
-      : 'Bạn có chắc chắn muốn xóa phân loại này?\n\n⚠️ Lưu ý: Đây là thao tác xóa vĩnh viễn và không thể khôi phục!'
-    
-    if (window.confirm(confirmMessage)) {
-      try {
-        console.log('Deleting category with ID:', id)
-        
-        // Call API to delete category
-        await deleteCategory(id)
-        
-        // Show success message
-        alert('Xóa phân loại thành công!')
-        
-      } catch (err: any) {
-        console.error('Error deleting category:', err)
-        alert(err.message || 'Có lỗi xảy ra khi xóa phân loại')
-      }
+    if (categoryToDelete) {
+      setCategoryToDelete({
+        id: categoryToDelete.id,
+        name: categoryToDelete.name,
+        code: categoryToDelete.code
+      })
+      setDeleteConfirmOpen(true)
     }
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!categoryToDelete) return
+
+    setDeleteLoading(categoryToDelete.id)
+
+    try {
+      console.log('Deleting category with ID:', categoryToDelete.id)
+
+      // Call API to delete category
+      await deleteCategory(categoryToDelete.id)
+
+      // Close modal and reset state
+      setDeleteConfirmOpen(false)
+      setCategoryToDelete(null)
+
+      // Success - no alert needed as data will be automatically updated
+    } catch (err: any) {
+      console.error('Error deleting category:', err)
+
+      // Show error notification
+      setErrorMessage(err.message || 'Có lỗi xảy ra khi xóa phân loại')
+      setShowError(true)
+
+      // Close modal and reset state on error too
+      setDeleteConfirmOpen(false)
+      setCategoryToDelete(null)
+    } finally {
+      setDeleteLoading(null)
+    }
+  }
+
+  const handleCancelDelete = () => {
+    setDeleteConfirmOpen(false)
+    setCategoryToDelete(null)
+  }
+
+  const handleErrorClose = () => {
+    setShowError(false)
+    setErrorMessage('')
   }
 
   const handleEdit = (category: TCategory) => {
@@ -126,12 +149,13 @@ const ManageCategoryPage: React.FC = () => {
       // Validate input
       if (!editCategory.code.trim() || !editCategory.name.trim()) {
         alert('Vui lòng nhập đầy đủ mã và tên phân loại')
+
         return
       }
 
       // Prepare update data (only changed fields)
       const updateData: { code?: string; name?: string } = {}
-      
+
       // Find original category to compare
       const originalCategory = categories.find(c => c.id === editCategory.id)
       if (originalCategory) {
@@ -146,6 +170,7 @@ const ManageCategoryPage: React.FC = () => {
       // If no changes, just close modal
       if (Object.keys(updateData).length === 0) {
         setEditModal(false)
+
         return
       }
 
@@ -156,10 +181,9 @@ const ManageCategoryPage: React.FC = () => {
 
       // Close modal
       setEditModal(false)
-      
+
       // Show success message
       alert('Cập nhật phân loại thành công!')
-      
     } catch (err: any) {
       console.error('Error updating category:', err)
       alert(err.message || 'Có lỗi xảy ra khi cập nhật phân loại')
@@ -176,6 +200,7 @@ const ManageCategoryPage: React.FC = () => {
       // Validate input
       if (!newCategory.code.trim() || !newCategory.name.trim()) {
         alert('Vui lòng nhập đầy đủ mã và tên phân loại')
+
         return
       }
 
@@ -188,10 +213,8 @@ const ManageCategoryPage: React.FC = () => {
       // Close modal and reset form
       setAddModal(false)
       setNewCategory({ code: '', name: '' })
-      
-      // Show success message
-      alert('Tạo phân loại thành công!')
-      
+
+      // Success - no alert needed as data will be automatically updated
     } catch (err: any) {
       console.error('Error creating category:', err)
       alert(err.message || 'Có lỗi xảy ra khi tạo phân loại')
@@ -212,23 +235,9 @@ const ManageCategoryPage: React.FC = () => {
     return new Date(dateString).toLocaleDateString('vi-VN')
   }
 
-  const handlePageChange = (newPage: number) => {
-    setCurrentPage(newPage)
-  }
-
-  const handleManualPageInput = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter') {
-      const input = event.target as HTMLInputElement
-      const pageNumber = parseInt(input.value)
-      
-      if (!isNaN(pageNumber) && pageNumber >= 1 && pageNumber <= totalPages) {
-        setCurrentPage(pageNumber)
-        input.value = '' // Clear input after successful navigation
-      } else {
-        // Reset to current page if invalid input
-        input.value = currentPage.toString()
-      }
-    }
+  const handleOnchangePagination = (page: number, pageSize: number) => {
+    setCurrentPage(page)
+    setPageSize(pageSize)
   }
 
   return (
@@ -245,28 +254,8 @@ const ManageCategoryPage: React.FC = () => {
         Quản lý phân loại
       </Typography>
 
-      {error && error !== null && (
-        <Box 
-          sx={{ 
-            mb: 2,
-            p: 2,
-            borderRadius: 1,
-            backgroundColor: '#FDE4D5',
-            border: '1px solid #EA5455',
-            color: '#EA5455',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1
-          }}
-        >
-          <Typography variant="body2" sx={{ fontWeight: 500 }}>
-            {error || 'Có lỗi xảy ra'}
-          </Typography>
-        </Box>
-      )}
-
       <Box sx={{ display: 'flex', mb: 3, gap: 2, alignItems: 'flex-end' }}>
-        <Button variant='contained' color='primary' onClick={handleAdd}>
+        <Button variant='contained' color='primary' onClick={handleAdd} startIcon={<Add />}>
           Thêm phân loại
         </Button>
         <Box>
@@ -284,7 +273,7 @@ const ManageCategoryPage: React.FC = () => {
       </Box>
 
       {loading ? (
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+        <Box display='flex' justifyContent='center' alignItems='center' minHeight='200px'>
           <CircularProgress />
         </Box>
       ) : (
@@ -342,11 +331,7 @@ const ManageCategoryPage: React.FC = () => {
                         </Tooltip>
                       </TableCell>
                       <TableCell sx={{ textAlign: 'center' }}>
-                        <Chip 
-                          label={category.code} 
-                          color="primary"
-                          size="small"
-                        />
+                        <Chip label={category.code} color='primary' size='small' />
                       </TableCell>
                       <TableCell sx={{ textAlign: 'center' }}>
                         <Tooltip title={category.name}>
@@ -355,17 +340,17 @@ const ManageCategoryPage: React.FC = () => {
                       </TableCell>
                       <TableCell sx={{ textAlign: 'center' }}>
                         <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                          <Button variant='outlined' color='warning' size='small' onClick={() => handleEdit(category)}>
-                            Sửa
-                          </Button>
-                          <Button
-                            variant='outlined'
+                          <IconButton color='primary' onClick={() => handleEdit(category)} size='small'>
+                            <Edit />
+                          </IconButton>
+                          <IconButton
                             color='error'
-                            size='small'
                             onClick={() => handleDelete(category.id)}
+                            size='small'
+                            disabled={deleteLoading === category.id}
                           >
-                            Xoá
-                          </Button>
+                            {deleteLoading === category.id ? <CircularProgress size={16} color='error' /> : <Delete />}
+                          </IconButton>
                         </Box>
                       </TableCell>
                     </TableRow>
@@ -381,57 +366,17 @@ const ManageCategoryPage: React.FC = () => {
             </Table>
           </TableContainer>
 
-          {totalPages > 1 && (
-            <Box sx={{ mt: 4, mb: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-              <Typography variant="body1" color="text.secondary" sx={{ fontSize: '1rem', fontWeight: 500 }}>
-                Hiển thị {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredCategories.length)} trong tổng số {filteredCategories.length} phân loại
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                <Button
-                  variant="outlined"
-                  disabled={currentPage === 1}
-                  onClick={() => handlePageChange(currentPage - 1)}
-                >
-                  Trước
-                </Button>
-                
-                {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNum) => (
-                  <Button
-                    key={pageNum}
-                    variant={currentPage === pageNum ? "contained" : "outlined"}
-                    onClick={() => handlePageChange(pageNum)}
-                    sx={{ minWidth: 40 }}
-                  >
-                    {pageNum}
-                  </Button>
-                ))}
-                
-                <Button
-                  variant="outlined"
-                  disabled={currentPage === totalPages}
-                  onClick={() => handlePageChange(currentPage + 1)}
-                >
-                  Sau
-                </Button>
-              </Box>
-              
-              {/* Manual page input */}
-              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                <Typography variant="body1" color="text.secondary" sx={{ fontSize: '1rem', fontWeight: 500 }}>
-                  Chuyển đến trang:
-                </Typography>
-                <TextField
-                  size="small"
-                  sx={{ width: 80 }}
-                  placeholder={currentPage.toString()}
-                  onKeyDown={handleManualPageInput}
-                  InputProps={{
-                    endAdornment: <InputAdornment position="end">/ {totalPages}</InputAdornment>,
-                  }}
-                />
-              </Box>
-            </Box>
-          )}
+          <Box sx={{ mt: 4, mb: 4 }}>
+            <CustomPagination
+              onChangePagination={handleOnchangePagination}
+              pageSizeOptions={PAGE_SIZE_OPTION}
+              pageSize={pageSize}
+              totalPages={totalPages}
+              page={currentPage}
+              rowLength={filteredCategories.length}
+              isHideShowed
+            />
+          </Box>
         </>
       )}
 
@@ -498,6 +443,56 @@ const ManageCategoryPage: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteConfirmOpen}
+        onClose={handleCancelDelete}
+        aria-labelledby='delete-dialog-title'
+        aria-describedby='delete-dialog-description'
+      >
+        <DialogTitle id='delete-dialog-title'>Xác nhận xóa phân loại</DialogTitle>
+        <DialogContent>
+          <Typography id='delete-dialog-description'>
+            Bạn có chắc chắn muốn xóa phân loại "{categoryToDelete?.name}" ({categoryToDelete?.code})?
+          </Typography>
+          <Typography variant='body2' color='text.secondary' sx={{ mt: 1 }}>
+            ⚠️ Lưu ý: Đây là thao tác xóa vĩnh viễn và không thể khôi phục!
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelDelete} color='inherit'>
+            Hủy
+          </Button>
+          <Button
+            onClick={handleConfirmDelete}
+            color='error'
+            variant='contained'
+            disabled={deleteLoading === categoryToDelete?.id}
+          >
+            {deleteLoading === categoryToDelete?.id ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CircularProgress size={16} color='inherit' />
+                Đang xóa...
+              </Box>
+            ) : (
+              'Xóa'
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Error Snackbar */}
+      <Snackbar
+        open={showError}
+        autoHideDuration={6000}
+        onClose={handleErrorClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert onClose={handleErrorClose} severity='error' sx={{ width: '100%' }}>
+          {errorMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   )
 }

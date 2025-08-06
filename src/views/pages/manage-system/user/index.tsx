@@ -24,12 +24,17 @@ import {
   SelectChangeEvent,
   CircularProgress,
   Chip,
+  Snackbar,
   Alert,
-  InputAdornment
+  IconButton
 } from '@mui/material'
+import EditIcon from '@mui/icons-material/Edit'
+import DeleteIcon from '@mui/icons-material/Delete'
 
 import { useAuth } from 'src/hooks/useAuth'
 import { TUser } from 'src/types/auth'
+import CustomPagination from 'src/components/custom-pagination'
+import { PAGE_SIZE_OPTION } from 'src/configs/gridConfig'
 
 // Kiểu dữ liệu TypeScript cho người dùng
 interface NewUser {
@@ -49,14 +54,6 @@ interface ValidationErrors {
   confirmPassword?: string
 }
 
-const cellStyle = {
-  maxWidth: 150,
-  whiteSpace: 'nowrap',
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  textAlign: 'center' as const
-}
-
 const ellipsisStyle: React.CSSProperties = {
   maxWidth: 120,
   overflow: 'hidden',
@@ -65,14 +62,6 @@ const ellipsisStyle: React.CSSProperties = {
   display: 'inline-block',
   verticalAlign: 'middle'
 }
-
-const TooltipCell = ({ value }: { value: string | number }) => (
-  <TableCell sx={cellStyle}>
-    <Tooltip title={String(value)} arrow placement='bottom'>
-      <span>{value}</span>
-    </Tooltip>
-  </TableCell>
-)
 
 const AvatarCell = ({ src, alt }: { src: string | null; alt: string }) => (
   <TableCell sx={{ textAlign: 'center' }}>
@@ -85,7 +74,7 @@ const AvatarCell = ({ src, alt }: { src: string | null; alt: string }) => (
 )
 
 const ActiveCell = ({ active, onClick, loading }: { active: boolean; onClick: () => void; loading: boolean }) => (
-  <TableCell sx={cellStyle}>
+  <TableCell sx={{ textAlign: 'center' }}>
     <Tooltip title={active ? 'Hoạt động' : 'Click để kích hoạt'} arrow placement='bottom'>
       <Typography
         sx={{
@@ -108,7 +97,6 @@ const ManageUserPage: React.FC = () => {
   const { fetchUsers, createNewUser, updateUserProfile, deleteUserProfile } = useAuth()
   const [users, setUsers] = useState<TUser[]>([])
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
   const [editModal, setEditModal] = useState(false)
   const [editUser, setEditUser] = useState<TUser | null>(null)
   const [addModal, setAddModal] = useState(false)
@@ -123,59 +111,80 @@ const ManageUserPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterRole, setFilterRole] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 10 // Cố định 10 items mỗi trang
+  const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTION[0])
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [userToDelete, setUserToDelete] = useState<string | null>(null)
+  const [snackbarOpen, setSnackbarOpen] = useState(false)
+  const [snackbarMessage, setSnackbarMessage] = useState('')
+  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success')
+  const itemsPerPage = pageSize // Use dynamic page size
 
   // Debug validation errors
   useEffect(() => {
     console.log('Current validation errors:', validationErrors)
   }, [validationErrors])
 
+  const loadUsers = async () => {
+    setLoading(true)
+    try {
+      const response = await fetchUsers()
+      setUsers(response.data)
+    } catch (err: any) {
+      showSnackbar(err.message || 'Failed to fetch users', 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   // Load users from API
   useEffect(() => {
-    const loadUsers = async () => {
-      setLoading(true)
-      setError('')
-      try {
-        const response = await fetchUsers()
-        setUsers(response.data)
-      } catch (err: any) {
-        setError(err.message || 'Failed to fetch users')
-      } finally {
-        setLoading(false)
-      }
-    }
-
     loadUsers()
   }, []) // Remove fetchUsers dependency to prevent infinite re-renders
 
   // Handlers
-  const handleDelete = async (id: string) => {
-    if (
-      window.confirm(
-        'Bạn có chắc muốn vô hiệu hóa người dùng này? (Người dùng sẽ không thể đăng nhập nhưng dữ liệu vẫn được giữ lại)'
-      )
-    ) {
-      try {
-        setLoading(true)
-        setError('')
+  const showSnackbar = (message: string, severity: 'success' | 'error' = 'success') => {
+    setSnackbarMessage(message)
+    setSnackbarSeverity(severity)
+    setSnackbarOpen(true)
+  }
 
-        // Call API to deactivate user (soft delete)
-        await deleteUserProfile(id)
+  const handleSnackbarClose = () => {
+    setSnackbarOpen(false)
+  }
 
-        // Reload users list after successful deactivation
-        const response = await fetchUsers()
-        setUsers(response.data)
+  const handleDeleteClick = (id: string) => {
+    setUserToDelete(id)
+    setDeleteConfirmOpen(true)
+  }
 
-        // Show success message (optional)
-        console.log('User deactivated successfully')
-      } catch (err: any) {
-        setError(err.response?.data?.message || err.message || 'Có lỗi xảy ra khi vô hiệu hóa người dùng')
-      } finally {
-        setLoading(false)
-      }
+  const handleConfirmDelete = async () => {
+    if (!userToDelete) return
+
+    try {
+      setLoading(true)
+
+      // Call API to deactivate user (soft delete)
+      await deleteUserProfile(userToDelete)
+
+      // Reload users list after successful deactivation
+      await loadUsers()
+      showSnackbar('Vô hiệu hóa người dùng thành công')
+
+      console.log('User deactivated successfully')
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.message || err.message || 'Có lỗi xảy ra khi vô hiệu hóa người dùng'
+      showSnackbar(errorMsg, 'error')
+    } finally {
+      setLoading(false)
+      setDeleteConfirmOpen(false)
+      setUserToDelete(null)
     }
   }
 
+  const handleCancelDelete = () => {
+    setDeleteConfirmOpen(false)
+    setUserToDelete(null)
+  }
   const handleEdit = (user: TUser) => {
     setEditUser(user)
     setEditModal(true)
@@ -185,7 +194,6 @@ const ManageUserPage: React.FC = () => {
     if (editUser) {
       try {
         setLoading(true)
-        setError('')
 
         // Prepare data for API
         const updateData: {
@@ -221,12 +229,13 @@ const ManageUserPage: React.FC = () => {
         await updateUserProfile(editUser.id, updateData)
 
         // Reload users list after successful update
-        const response = await fetchUsers()
-        setUsers(response.data)
+        await loadUsers()
+        showSnackbar('Cập nhật người dùng thành công')
 
         setEditModal(false)
       } catch (err: any) {
-        setError(err.response?.data?.message || err.message || 'Có lỗi xảy ra khi cập nhật người dùng')
+        const errorMsg = err.response?.data?.message || err.message || 'Có lỗi xảy ra khi cập nhật người dùng'
+        showSnackbar(errorMsg, 'error')
       } finally {
         setLoading(false)
       }
@@ -348,12 +357,13 @@ const ManageUserPage: React.FC = () => {
 
     try {
       setLoading(true)
-      setError('')
       setValidationErrors({}) // Clear previous validation errors
       await createNewUser(newUser)
+
       // Reload users list after successful creation
-      const response = await fetchUsers()
-      setUsers(response.data)
+      await loadUsers()
+      showSnackbar('Tạo người dùng thành công')
+
       setAddModal(false)
       setNewUser({ fullName: '', email: '', phone: '', password: '', confirmPassword: '' })
       setValidationErrors({})
@@ -381,7 +391,8 @@ const ManageUserPage: React.FC = () => {
         setValidationErrors(apiErrors)
       } else {
         // Handle general errors
-        setError(err.response?.data?.message || err.message || 'Có lỗi xảy ra khi tạo người dùng')
+        const errorMsg = err.response?.data?.message || err.message || 'Có lỗi xảy ra khi tạo người dùng'
+        showSnackbar(errorMsg, 'error')
       }
     } finally {
       setLoading(false)
@@ -395,25 +406,23 @@ const ManageUserPage: React.FC = () => {
       return // Nếu user đã hoạt động thì không làm gì
     }
 
-    if (window.confirm('Bạn có chắc muốn kích hoạt người dùng này?')) {
-      try {
-        setLoading(true)
-        setError('')
+    try {
+      setLoading(true)
 
-        // Call API to activate user
-        await updateUserProfile(id, { active: true })
+      // Call API to activate user
+      await updateUserProfile(id, { active: true })
 
-        // Reload users list after successful activation
-        const response = await fetchUsers()
-        setUsers(response.data)
+      // Reload users list after successful activation
+      await loadUsers()
+      showSnackbar('Kích hoạt người dùng thành công')
 
-        // Show success message (optional)
-        console.log('User activated successfully')
-      } catch (err: any) {
-        setError(err.response?.data?.message || err.message || 'Có lỗi xảy ra khi kích hoạt người dùng')
-      } finally {
-        setLoading(false)
-      }
+      // Show success message (optional)
+      console.log('User activated successfully')
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.message || err.message || 'Có lỗi xảy ra khi kích hoạt người dùng'
+      showSnackbar(errorMsg, 'error')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -433,23 +442,9 @@ const ManageUserPage: React.FC = () => {
     return new Date(dateString).toLocaleDateString('vi-VN')
   }
 
-  const handlePageChange = (newPage: number) => {
-    setCurrentPage(newPage)
-  }
-
-  const handleManualPageInput = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter') {
-      const input = event.target as HTMLInputElement
-      const pageNumber = parseInt(input.value)
-
-      if (!isNaN(pageNumber) && pageNumber >= 1 && pageNumber <= totalPages) {
-        setCurrentPage(pageNumber)
-        input.value = '' // Clear input after successful navigation
-      } else {
-        // Reset to current page if invalid input
-        input.value = currentPage.toString()
-      }
-    }
+  const handleOnchangePagination = (page: number, pageSize: number) => {
+    setCurrentPage(page)
+    setPageSize(pageSize)
   }
 
   return (
@@ -465,26 +460,6 @@ const ManageUserPage: React.FC = () => {
       <Typography variant='h5' fontWeight='bold' mb={3}>
         Quản lý người dùng
       </Typography>
-
-      {error && (
-        <Box
-          sx={{
-            mb: 2,
-            p: 2,
-            borderRadius: 1,
-            backgroundColor: '#FDE4D5',
-            border: '1px solid #EA5455',
-            color: '#EA5455',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1
-          }}
-        >
-          <Typography variant='body2' sx={{ fontWeight: 500 }}>
-            {error}
-          </Typography>
-        </Box>
-      )}
 
       <Box sx={{ display: 'flex', mb: 3, gap: 2, alignItems: 'flex-end' }}>
         <Button variant='contained' color='primary' onClick={handleAdd}>
@@ -618,18 +593,27 @@ const ManageUserPage: React.FC = () => {
                       </TableCell>
                       <TableCell sx={{ textAlign: 'center' }}>
                         <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                          <Button variant='outlined' color='warning' size='small' onClick={() => handleEdit(user)}>
-                            Sửa
-                          </Button>
-                          <Button
-                            variant='outlined'
-                            color='error'
-                            size='small'
-                            onClick={() => handleDelete(user.id)}
-                            disabled={loading}
-                          >
-                            {loading ? 'Đang vô hiệu...' : 'Vô hiệu'}
-                          </Button>
+                          <Tooltip title='Sửa'>
+                            <IconButton
+                              color='warning'
+                              size='small'
+                              onClick={() => handleEdit(user)}
+                              sx={{ '&:hover': { backgroundColor: 'rgba(237, 108, 2, 0.1)' } }}
+                            >
+                              <EditIcon fontSize='small' />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title='Vô hiệu hóa'>
+                            <IconButton
+                              color='error'
+                              size='small'
+                              onClick={() => handleDeleteClick(user.id)}
+                              disabled={loading}
+                              sx={{ '&:hover': { backgroundColor: 'rgba(211, 47, 47, 0.1)' } }}
+                            >
+                              <DeleteIcon fontSize='small' />
+                            </IconButton>
+                          </Tooltip>
                         </Box>
                       </TableCell>
                     </TableRow>
@@ -645,59 +629,14 @@ const ManageUserPage: React.FC = () => {
             </Table>
           </TableContainer>
 
-          {totalPages > 1 && (
-            <Box sx={{ mt: 4, mb: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-              <Typography variant='body1' color='text.secondary' sx={{ fontSize: '1rem', fontWeight: 500 }}>
-                Hiển thị {(currentPage - 1) * itemsPerPage + 1} -{' '}
-                {Math.min(currentPage * itemsPerPage, filteredUsers.length)} trong tổng số {filteredUsers.length} người
-                dùng
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                <Button
-                  variant='outlined'
-                  disabled={currentPage === 1}
-                  onClick={() => handlePageChange(currentPage - 1)}
-                >
-                  Trước
-                </Button>
-
-                {Array.from({ length: totalPages }, (_, index) => index + 1).map(pageNum => (
-                  <Button
-                    key={pageNum}
-                    variant={currentPage === pageNum ? 'contained' : 'outlined'}
-                    onClick={() => handlePageChange(pageNum)}
-                    sx={{ minWidth: 40 }}
-                  >
-                    {pageNum}
-                  </Button>
-                ))}
-
-                <Button
-                  variant='outlined'
-                  disabled={currentPage === totalPages}
-                  onClick={() => handlePageChange(currentPage + 1)}
-                >
-                  Sau
-                </Button>
-              </Box>
-
-              {/* Manual page input */}
-              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                <Typography variant='body1' color='text.secondary' sx={{ fontSize: '1rem', fontWeight: 500 }}>
-                  Chuyển đến trang:
-                </Typography>
-                <TextField
-                  size='small'
-                  sx={{ width: 80 }}
-                  placeholder={currentPage.toString()}
-                  onKeyDown={handleManualPageInput}
-                  InputProps={{
-                    endAdornment: <InputAdornment position='end'>/ {totalPages}</InputAdornment>
-                  }}
-                />
-              </Box>
-            </Box>
-          )}
+          <CustomPagination
+            page={currentPage}
+            pageSize={pageSize}
+            rowLength={filteredUsers.length}
+            totalPages={totalPages}
+            pageSizeOptions={PAGE_SIZE_OPTION}
+            onChangePagination={handleOnchangePagination}
+          />
         </>
       )}
 
@@ -884,6 +823,35 @@ const ManageUserPage: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteConfirmOpen} onClose={handleCancelDelete} maxWidth='sm' fullWidth>
+        <DialogTitle>Xác nhận vô hiệu hóa</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Bạn có chắc muốn vô hiệu hóa người dùng này? Người dùng sẽ không thể đăng nhập nhưng dữ liệu vẫn được giữ
+            lại.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelDelete}>Hủy</Button>
+          <Button onClick={handleConfirmDelete} variant='contained' color='error' disabled={loading}>
+            {loading ? 'Đang vô hiệu...' : 'Vô hiệu hóa'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Success/Error Snackbar */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={3000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert onClose={handleSnackbarClose} severity={snackbarSeverity} variant='filled' sx={{ width: '100%' }}>
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   )
 }

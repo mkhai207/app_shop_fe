@@ -18,9 +18,13 @@ import {
   Rating,
   Chip,
   Typography,
-  InputAdornment
+  InputAdornment,
+  IconButton
 } from '@mui/material'
+import { Search as SearchIcon } from '@mui/icons-material'
 import { NextPage } from 'next'
+import CustomPagination from 'src/components/custom-pagination'
+import { PAGE_SIZE_OPTION } from 'src/configs/gridConfig'
 import { reviewService } from 'src/services/review'
 import { TReview } from 'src/types/review'
 
@@ -35,53 +39,69 @@ const ManageReviewPage: NextPage<TProps> = () => {
   const [error, setError] = useState('')
 
   const [searchTerm, setSearchTerm] = useState('')
+  const [productIdSearch, setProductIdSearch] = useState('')
   const [filterRating, setFilterRating] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTION[0])
   const [totalItems, setTotalItems] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
-  const itemsPerPage = 10
+  const itemsPerPage = pageSize
 
-  // Reset currentPage when search or filter changes
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchTerm, filterRating])
+  }, [filterRating, productIdSearch])
 
-  // Load reviews from API
+  const handleOnchangePagination = (page: number, pageSize: number) => {
+    setCurrentPage(page)
+    setPageSize(pageSize)
+  }
+
+  const handleSearch = () => {
+    setProductIdSearch(searchTerm.trim())
+    setCurrentPage(1)
+  }
+
+  const handleKeyPress = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      handleSearch()
+    }
+  }
+
   useEffect(() => {
     const loadReviews = async () => {
       console.log('🔄 Loading reviews from API...')
-      console.log('📊 Request params:', { 
-        page: currentPage, 
-        limit: itemsPerPage, 
-        search: searchTerm || 'none', 
-        rating: filterRating || 'all' 
+      console.log('📊 Request params:', {
+        page: currentPage,
+        limit: itemsPerPage,
+        product_id: productIdSearch || 'none',
+        rating: filterRating || 'all'
       })
-      
+
       setLoading(true)
       setError('')
-      
+
       try {
         // Call API without authentication requirement
         const queryParams: any = {
           page: currentPage,
           limit: itemsPerPage
         }
-        
+
         // Add optional parameters only if they have values
-        if (searchTerm && searchTerm.trim()) {
-          queryParams.search = searchTerm.trim()
+        if (productIdSearch && productIdSearch.trim()) {
+          queryParams.product_id = productIdSearch.trim()
         }
-        
+
         if (filterRating) {
           queryParams.rating = Number(filterRating)
         }
-        
-        console.log('🚀 Calling API with params:', queryParams)
+
+        console.log('Calling API with params:', queryParams)
         const response = await reviewService.getReviews(queryParams)
-        
-        console.log('✅ API Response received:', {
+
+        console.log('API Response received:', {
           status: response.status,
           statusCode: response.statusCode,
           message: response.message,
@@ -90,17 +110,17 @@ const ManageReviewPage: NextPage<TProps> = () => {
           hasData: !!response.data,
           hasMeta: !!response.meta
         })
-        
+
         // Handle successful response
         if (response.status === 'success' || response.statusCode === 200) {
           const reviewData = response.data || []
           const metaData = response.meta || { totalItems: 0, totalPages: 1, currentPage: 1 }
-          
+
           setReviews(reviewData)
           setTotalItems(metaData.totalItems || 0)
           setTotalPages(metaData.totalPages || 1)
-          
-          console.log('🎯 Reviews state updated:', {
+
+          console.log('Reviews state updated:', {
             reviewsCount: reviewData.length,
             totalItems: metaData.totalItems || 0,
             totalPages: metaData.totalPages || 1,
@@ -108,36 +128,35 @@ const ManageReviewPage: NextPage<TProps> = () => {
           })
         } else {
           // Handle API error response
-          console.warn('⚠️ API returned error:', response.message)
+          console.warn(' API returned error:', response.message)
           setError(response.message || 'API returned an error')
           setReviews([])
           setTotalItems(0)
           setTotalPages(0)
         }
-        
       } catch (err: any) {
-        console.error('❌ API call failed:', {
+        console.error('API call failed:', {
           message: err.message,
           status: err.status,
           response: err.response?.data
         })
-        
+
         setError(`Lỗi kết nối API: ${err.message || 'Unknown error'}`)
         setReviews([])
         setTotalItems(0)
         setTotalPages(0)
       } finally {
         setLoading(false)
-        console.log('🏁 Loading completed')
+        console.log(' Loading completed')
       }
     }
 
     loadReviews()
-  }, [currentPage, searchTerm, filterRating])
+  }, [currentPage, filterRating, itemsPerPage, productIdSearch])
 
   // Debug render
   useEffect(() => {
-    console.log('🎨 Render debug - Loading:', loading, 'Reviews count:', reviews.length, 'Error:', error)
+    console.log('Render debug - Loading:', loading, 'Reviews count:', reviews.length, 'Error:', error)
   }, [loading, reviews.length, error])
 
   // Handlers
@@ -145,49 +164,49 @@ const ManageReviewPage: NextPage<TProps> = () => {
     if (!window.confirm('Bạn có chắc muốn xoá đánh giá này?')) {
       return
     }
-    
+
     setDeletingId(id)
     try {
-      console.log('🔄 Deleting review with id:', id)
+      console.log('Deleting review with id:', id)
       await reviewService.deleteReview(id)
-      console.log('✅ Review deleted successfully')
-      
+      console.log('Review deleted successfully')
+
       // Refresh the reviews list after successful deletion
       const queryParams: any = {
         page: currentPage,
         limit: itemsPerPage
       }
-      
-      if (searchTerm && searchTerm.trim()) {
-        queryParams.search = searchTerm.trim()
+
+      if (productIdSearch && productIdSearch.trim()) {
+        queryParams.product_id = productIdSearch.trim()
       }
-      
+
       if (filterRating) {
         queryParams.rating = Number(filterRating)
       }
-      
+
       const response = await reviewService.getReviews(queryParams)
-      
+
       // Handle refresh response
       if (response.status === 'success' || response.statusCode === 200) {
         const reviewData = response.data || []
         const metaData = response.meta || { totalItems: 0, totalPages: 1, currentPage: 1 }
-        
+
         setReviews(reviewData)
         setTotalItems(metaData.totalItems || 0)
         setTotalPages(metaData.totalPages || 1)
-        
-        console.log('🔄 Reviews refreshed after delete:', {
+
+        console.log(' Reviews refreshed after delete:', {
           remainingReviews: reviewData.length,
           totalItems: metaData.totalItems || 0
         })
       }
-      
+
       // Show success message
       alert('Xóa đánh giá thành công!')
     } catch (error: any) {
-      console.error('❌ Failed to delete review:', error)
-      
+      console.error('Failed to delete review:', error)
+
       // Handle specific error cases
       if (error.response?.status === 401) {
         alert('Lỗi xác thực: Vui lòng đăng nhập lại với quyền admin')
@@ -202,8 +221,6 @@ const ManageReviewPage: NextPage<TProps> = () => {
       setDeletingId(null)
     }
   }
-
-
 
   // Filtering and pagination
   const ratings = [1, 2, 3, 4, 5]
@@ -220,12 +237,9 @@ const ManageReviewPage: NextPage<TProps> = () => {
 
   const formatDate = (dateString: string) => {
     console.log('📅 Formatting date:', dateString)
+
     return new Date(dateString).toLocaleDateString('vi-VN')
   }
-
-
-
-
 
   return (
     <Box
@@ -245,65 +259,45 @@ const ManageReviewPage: NextPage<TProps> = () => {
         Quản lý đánh giá
       </Typography>
 
-             {error && (
-         <Box 
-           sx={{ 
-             mb: 2,
-             p: 2,
-             borderRadius: 1,
-             backgroundColor: '#FDE4D5',
-             border: '1px solid #EA5455',
-             color: '#EA5455',
-             display: 'flex',
-             alignItems: 'center',
-             gap: 1
-           }}
-         >
-           <Typography variant="body2" sx={{ fontWeight: 500 }}>
-             {error}
-           </Typography>
-         </Box>
-       )}
-
-       {/* Debug Info */}
-       <Box 
-         sx={{ 
-           mb: 2,
-           p: 2,
-           borderRadius: 1,
-           backgroundColor: '#f5f5f5',
-           border: '1px solid #ddd',
-           fontSize: '0.85rem'
-         }}
-       >
-         <Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>
-           Debug Info:
-         </Typography>
-         <Typography variant="body2">
-           Loading: {loading ? 'Yes' : 'No'} | 
-           Reviews Count: {reviews.length} | 
-           Total Items: {totalItems} | 
-           Total Pages: {totalPages} | 
-           Current Page: {currentPage} | 
-           Error: {error || 'None'}
-         </Typography>
-         <Typography variant="body2" sx={{ mt: 1, fontSize: '0.75rem', color: '#666' }}>
-           API Endpoint: /api/v0/reviews/get-reviews | 
-           Delete API: /api/v0/reviews/delete-review/:id | 
-           Search Term: {searchTerm || 'None'} | 
-           Filter Rating: {filterRating || 'All'}
-         </Typography>
-       </Box>
+      {error && (
+        <Box
+          sx={{
+            mb: 2,
+            p: 2,
+            borderRadius: 1,
+            backgroundColor: '#FDE4D5',
+            border: '1px solid #EA5455',
+            color: '#EA5455',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1
+          }}
+        >
+          <Typography variant='body2' sx={{ fontWeight: 500 }}>
+            {error}
+          </Typography>
+        </Box>
+      )}
 
       <Box sx={{ display: 'flex', mb: 3, gap: 2, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-        <Box>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end' }}>
           <TextField
             size='small'
             sx={{ width: 200, minWidth: 150 }}
-            placeholder='Tìm kiếm theo nội dung'
+            placeholder='Tìm kiếm theo Product ID'
             value={searchTerm}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
               setSearchTerm(e.target.value)
+            }}
+            onKeyPress={handleKeyPress}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position='end'>
+                  <IconButton aria-label='search' onClick={handleSearch} edge='end' size='small'>
+                    <SearchIcon />
+                  </IconButton>
+                </InputAdornment>
+              )
             }}
           />
         </Box>
@@ -325,11 +319,10 @@ const ManageReviewPage: NextPage<TProps> = () => {
             ))}
           </Select>
         </Box>
-
       </Box>
 
       {loading ? (
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+        <Box display='flex' justifyContent='center' alignItems='center' minHeight='200px'>
           <CircularProgress />
         </Box>
       ) : (
@@ -345,19 +338,19 @@ const ManageReviewPage: NextPage<TProps> = () => {
             <Table>
               <TableHead>
                 <TableRow>
-                                     {[
-                     'ID',
-                     'Đánh giá',
-                     'Nội dung',
-                     'Hình ảnh',
-                     'Ngày tạo',
-                     'Người tạo',
-                     'Ngày cập nhật',
-                     'Người cập nhật',
-                     'Order ID',
-                     'Product ID',
-                     'Hành động'
-                   ].map(header => (
+                  {[
+                    'ID',
+                    'Đánh giá',
+                    'Nội dung',
+                    'Hình ảnh',
+                    'Ngày tạo',
+                    'Người tạo',
+                    'Ngày cập nhật',
+                    'Người cập nhật',
+                    'Order ID',
+                    'Product ID',
+                    'Hành động'
+                  ].map(header => (
                     <TableCell
                       key={header}
                       sx={{
@@ -392,6 +385,7 @@ const ManageReviewPage: NextPage<TProps> = () => {
                           {review.images ? (
                             (() => {
                               const imageArray = review.images.split(',').filter(img => img.trim() !== '')
+
                               return imageArray.length > 0 ? (
                                 <>
                                   {imageArray.slice(0, 3).map((image, index) => (
@@ -420,7 +414,7 @@ const ManageReviewPage: NextPage<TProps> = () => {
                           )}
                         </Box>
                       </TableCell>
-                      
+
                       <TableCell sx={{ textAlign: 'center' }}>{formatDate(review.created_at)}</TableCell>
                       <TableCell sx={{ textAlign: 'center' }}>
                         <Tooltip title={review.created_by}>
@@ -448,87 +442,33 @@ const ManageReviewPage: NextPage<TProps> = () => {
                       </TableCell>
                     </TableRow>
                   ))
-                                 ) : (
-                   <TableRow>
-                     <TableCell colSpan={11} sx={{ textAlign: 'center' }}>
-                       Không có đánh giá nào
-                     </TableCell>
-                   </TableRow>
-                 )}
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={11} sx={{ textAlign: 'center' }}>
+                      Không có đánh giá nào
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </TableContainer>
 
-          {totalPages > 1 && (
-            <Box sx={{ mt: 4, mb: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-              <Typography variant="body1" color="text.secondary" sx={{ fontSize: '1rem', fontWeight: 500 }}>
-                Hiển thị {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalItems)} trong tổng số {totalItems} đánh giá
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                <Button
-                  variant="outlined"
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(currentPage - 1)}
-                >
-                  Trước
-                </Button>
-                
-                {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNum) => (
-                  <Button
-                    key={pageNum}
-                    variant={currentPage === pageNum ? "contained" : "outlined"}
-                    onClick={() => setCurrentPage(pageNum)}
-                    sx={{ minWidth: 40 }}
-                  >
-                    {pageNum}
-                  </Button>
-                ))}
-                
-                <Button
-                  variant="outlined"
-                  disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage(currentPage + 1)}
-                >
-                  Sau
-                </Button>
-              </Box>
-              
-              {/* Manual page input */}
-              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                <Typography variant="body1" color="text.secondary" sx={{ fontSize: '1rem', fontWeight: 500 }}>
-                  Chuyển đến trang:
-                </Typography>
-                <TextField
-                  size="small"
-                  sx={{ width: 80 }}
-                  placeholder={currentPage.toString()}
-                  onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
-                    if (event.key === 'Enter') {
-                      const input = event.target as HTMLInputElement
-                      const pageNumber = parseInt(input.value)
-                      
-                      if (!isNaN(pageNumber) && pageNumber >= 1 && pageNumber <= totalPages) {
-                        setCurrentPage(pageNumber)
-                        input.value = '' // Clear input after successful navigation
-                      } else {
-                        // Reset to current page if invalid input
-                        input.value = currentPage.toString()
-                      }
-                    }
-                  }}
-                  InputProps={{
-                    endAdornment: <InputAdornment position="end">/ {totalPages}</InputAdornment>,
-                  }}
-                />
-              </Box>
-            </Box>
-          )}
+          {/* Pagination */}
+          <Box sx={{ mt: 4, mb: 4 }}>
+            <CustomPagination
+              onChangePagination={handleOnchangePagination}
+              pageSizeOptions={PAGE_SIZE_OPTION}
+              pageSize={pageSize}
+              totalPages={totalPages}
+              page={currentPage}
+              rowLength={totalItems}
+              isHideShowed
+            />
+          </Box>
         </>
       )}
-
-
     </Box>
   )
 }
 
-export default ManageReviewPage 
+export default ManageReviewPage

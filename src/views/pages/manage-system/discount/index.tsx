@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import {
   Box,
   Tooltip,
@@ -25,11 +25,14 @@ import {
   Chip,
   InputAdornment,
   Snackbar,
-  OutlinedInput
+  IconButton
 } from '@mui/material'
+import { Edit, Delete } from '@mui/icons-material'
 
 import { useDiscount } from 'src/hooks/useDiscount'
 import { TDiscount, NewDiscount } from 'src/types/discount'
+import CustomPagination from 'src/components/custom-pagination'
+import { PAGE_SIZE_OPTION } from 'src/configs/gridConfig'
 
 const cellStyle = {
   maxWidth: 150,
@@ -48,22 +51,14 @@ const ellipsisStyle: React.CSSProperties = {
   verticalAlign: 'middle'
 }
 
-const TooltipCell = ({ value }: { value: string | number }) => (
-  <TableCell sx={cellStyle}>
-    <Tooltip title={String(value)} arrow placement='bottom'>
-      <span>{value}</span>
-    </Tooltip>
-  </TableCell>
-)
-
 const StatusCell = ({ validFrom, validUntil }: { validFrom: string; validUntil: string }) => {
   const now = new Date()
   const fromDate = new Date(validFrom)
   const untilDate = new Date(validUntil)
-  
+
   let status = 'Chưa hiệu lực'
   let color: 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' = 'default'
-  
+
   if (now >= fromDate && now <= untilDate) {
     status = 'Đang hiệu lực'
     color = 'success'
@@ -77,7 +72,7 @@ const StatusCell = ({ validFrom, validUntil }: { validFrom: string; validUntil: 
 
   return (
     <TableCell sx={cellStyle}>
-      <Chip label={status} color={color} size="small" />
+      <Chip label={status} color={color} size='small' />
     </TableCell>
   )
 }
@@ -99,10 +94,25 @@ const ManageDiscountPage: React.FC = () => {
     minimum_order_value: 0,
     max_discount_amount: null
   })
+  const [newDiscountDates, setNewDiscountDates] = useState({
+    valid_from: null as Date | null,
+    valid_until: null as Date | null
+  })
+  const [editDiscountDates, setEditDiscountDates] = useState({
+    valid_from: null as Date | null,
+    valid_until: null as Date | null
+  })
+  const [confirmDeleteModal, setConfirmDeleteModal] = useState<{
+    open: boolean
+    discountId: number | null
+  }>({
+    open: false,
+    discountId: null
+  })
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 10
+  const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTION[0])
   const [snackbar, setSnackbar] = useState<{
     open: boolean
     message: string
@@ -114,14 +124,32 @@ const ManageDiscountPage: React.FC = () => {
   })
 
   // Handlers
-  const handleDelete = async (id: number) => {
-    if (window.confirm('Bạn có chắc muốn xoá khuyến mãi này?')) {
+  const handleDelete = (id: number) => {
+    setConfirmDeleteModal({
+      open: true,
+      discountId: id
+    })
+  }
+
+  const handleConfirmDelete = async () => {
+    if (confirmDeleteModal.discountId) {
       try {
-        await deleteDiscount(id)
+        await deleteDiscount(confirmDeleteModal.discountId)
+        setConfirmDeleteModal({ open: false, discountId: null })
       } catch (err) {
         console.error('Lỗi khi xóa khuyến mãi:', err)
+        setSnackbar(prev => ({
+          ...prev,
+          open: true,
+          message: 'Có lỗi xảy ra khi xóa khuyến mãi. Vui lòng thử lại!',
+          severity: 'error'
+        }))
       }
     }
+  }
+
+  const handleCancelDelete = () => {
+    setConfirmDeleteModal({ open: false, discountId: null })
   }
 
   // Hàm chuyển đổi ISO string về format DD/MM/YYYY HH:mm
@@ -129,16 +157,17 @@ const ManageDiscountPage: React.FC = () => {
     try {
       const date = new Date(isoString)
       if (isNaN(date.getTime())) return ''
-      
+
       const day = date.getDate().toString().padStart(2, '0')
       const month = (date.getMonth() + 1).toString().padStart(2, '0')
       const year = date.getFullYear()
       const hours = date.getHours().toString().padStart(2, '0')
       const minutes = date.getMinutes().toString().padStart(2, '0')
-      
+
       return `${day}/${month}/${year} ${hours}:${minutes}`
     } catch (error) {
       console.error('Lỗi chuyển đổi từ ISO string:', error)
+
       return ''
     }
   }
@@ -149,54 +178,65 @@ const ManageDiscountPage: React.FC = () => {
       valid_from: convertFromISOString(discount.valid_from),
       valid_until: convertFromISOString(discount.valid_until)
     })
+    setEditDiscountDates({
+      valid_from: new Date(discount.valid_from),
+      valid_until: new Date(discount.valid_until)
+    })
     setEditModal(true)
+  }
+
+  const handleAdd = () => {
+    setNewDiscount({
+      code: '',
+      name: '',
+      description: '',
+      discount_value: 0,
+      discount_type: 'PERCENTAGE',
+      valid_from: '',
+      valid_until: '',
+      minimum_order_value: 0,
+      max_discount_amount: null
+    })
+    setNewDiscountDates({
+      valid_from: null,
+      valid_until: null
+    })
+    setAddModal(true)
+  }
+
+  const formatDateForInput = (date: Date | null): string => {
+    if (!date) return ''
+    const year = date.getFullYear()
+    const month = (date.getMonth() + 1).toString().padStart(2, '0')
+    const day = date.getDate().toString().padStart(2, '0')
+    const hours = date.getHours().toString().padStart(2, '0')
+    const minutes = date.getMinutes().toString().padStart(2, '0')
+    return `${year}-${month}-${day}T${hours}:${minutes}`
   }
 
   const handleSaveEdit = async () => {
     if (editDiscount) {
       try {
-        // Validate format ngày tháng
-        if (!validateDateTimeFormat(editDiscount.valid_from)) {
+        // Validate dates
+        if (!editDiscountDates.valid_from || !editDiscountDates.valid_until) {
           setSnackbar(prev => ({
             ...prev,
             open: true,
-            message: 'Định dạng thời gian bắt đầu không hợp lệ! Vui lòng nhập theo định dạng: DD/MM/YYYY HH:mm',
+            message: 'Vui lòng chọn thời gian hiệu lực!',
             severity: 'error'
           }))
+
           return
         }
 
-        if (!validateDateTimeFormat(editDiscount.valid_until)) {
-          setSnackbar(prev => ({
-            ...prev,
-            open: true,
-            message: 'Định dạng thời gian kết thúc không hợp lệ! Vui lòng nhập theo định dạng: DD/MM/YYYY HH:mm',
-            severity: 'error'
-          }))
-          return
-        }
-
-        // Chuyển đổi sang ISO string
-        const validFromISO = convertToISOString(editDiscount.valid_from)
-        const validUntilISO = convertToISOString(editDiscount.valid_until)
-
-        if (!validFromISO || !validUntilISO) {
-          setSnackbar(prev => ({
-            ...prev,
-            open: true,
-            message: 'Có lỗi khi chuyển đổi thời gian!',
-            severity: 'error'
-          }))
-          return
-        }
-
-        if (new Date(validFromISO) >= new Date(validUntilISO)) {
+        if (editDiscountDates.valid_from >= editDiscountDates.valid_until) {
           setSnackbar(prev => ({
             ...prev,
             open: true,
             message: 'Thời gian kết thúc phải sau thời gian bắt đầu!',
             severity: 'error'
           }))
+
           return
         }
 
@@ -206,8 +246,8 @@ const ManageDiscountPage: React.FC = () => {
           description: editDiscount.description,
           discount_value: editDiscount.discount_value,
           discount_type: editDiscount.discount_type,
-          valid_from: validFromISO,
-          valid_until: validUntilISO,
+          valid_from: editDiscountDates.valid_from.toISOString(),
+          valid_until: editDiscountDates.valid_until.toISOString(),
           minimum_order_value: editDiscount.minimum_order_value,
           max_discount_amount: editDiscount.max_discount_amount
         })
@@ -230,21 +270,6 @@ const ManageDiscountPage: React.FC = () => {
     }
   }
 
-  const handleAdd = () => {
-    setNewDiscount({
-      code: '',
-      name: '',
-      description: '',
-      discount_value: 0,
-      discount_type: 'PERCENTAGE',
-      valid_from: '',
-      valid_until: '',
-      minimum_order_value: 0,
-      max_discount_amount: null
-    })
-    setAddModal(true)
-  }
-
   const handleSaveAdd = async () => {
     // Validation
     if (!newDiscount.code.trim()) {
@@ -254,9 +279,10 @@ const ManageDiscountPage: React.FC = () => {
         message: 'Vui lòng nhập mã khuyến mãi!',
         severity: 'error'
       }))
+
       return
     }
-    
+
     if (!newDiscount.name.trim()) {
       setSnackbar(prev => ({
         ...prev,
@@ -264,9 +290,10 @@ const ManageDiscountPage: React.FC = () => {
         message: 'Vui lòng nhập tên khuyến mãi!',
         severity: 'error'
       }))
+
       return
     }
-    
+
     if (newDiscount.discount_value <= 0) {
       setSnackbar(prev => ({
         ...prev,
@@ -274,61 +301,29 @@ const ManageDiscountPage: React.FC = () => {
         message: 'Giá trị giảm phải lớn hơn 0!',
         severity: 'error'
       }))
-      return
-    }
-    
-    if (!newDiscount.valid_from || !newDiscount.valid_until) {
-      setSnackbar(prev => ({
-        ...prev,
-        open: true,
-        message: 'Vui lòng nhập thời gian hiệu lực!',
-        severity: 'error'
-      }))
+
       return
     }
 
-    // Validate format ngày tháng
-    if (!validateDateTimeFormat(newDiscount.valid_from)) {
+    if (!newDiscountDates.valid_from || !newDiscountDates.valid_until) {
       setSnackbar(prev => ({
         ...prev,
         open: true,
-        message: 'Định dạng thời gian bắt đầu không hợp lệ! Vui lòng nhập theo định dạng: DD/MM/YYYY HH:mm',
+        message: 'Vui lòng chọn thời gian hiệu lực!',
         severity: 'error'
       }))
+
       return
     }
 
-    if (!validateDateTimeFormat(newDiscount.valid_until)) {
-      setSnackbar(prev => ({
-        ...prev,
-        open: true,
-        message: 'Định dạng thời gian kết thúc không hợp lệ! Vui lòng nhập theo định dạng: DD/MM/YYYY HH:mm',
-        severity: 'error'
-      }))
-      return
-    }
-
-    // Chuyển đổi sang ISO string để so sánh
-    const validFromISO = convertToISOString(newDiscount.valid_from)
-    const validUntilISO = convertToISOString(newDiscount.valid_until)
-
-    if (!validFromISO || !validUntilISO) {
-      setSnackbar(prev => ({
-        ...prev,
-        open: true,
-        message: 'Có lỗi khi chuyển đổi thời gian!',
-        severity: 'error'
-      }))
-      return
-    }
-    
-    if (new Date(validFromISO) >= new Date(validUntilISO)) {
+    if (newDiscountDates.valid_from >= newDiscountDates.valid_until) {
       setSnackbar(prev => ({
         ...prev,
         open: true,
         message: 'Thời gian kết thúc phải sau thời gian bắt đầu!',
         severity: 'error'
       }))
+
       return
     }
 
@@ -336,8 +331,8 @@ const ManageDiscountPage: React.FC = () => {
       // Format dữ liệu trước khi gửi API
       const formattedDiscount = {
         ...newDiscount,
-        valid_from: validFromISO,
-        valid_until: validUntilISO
+        valid_from: newDiscountDates.valid_from.toISOString(),
+        valid_until: newDiscountDates.valid_until.toISOString()
       }
       await createDiscount(formattedDiscount)
       setAddModal(false)
@@ -359,16 +354,15 @@ const ManageDiscountPage: React.FC = () => {
   }
 
   // Filtering and pagination
-  const discountTypes = Array.from(new Set(discounts.map(d => d.discount_type).filter(Boolean)))
   const filteredDiscounts = discounts.filter(discount => {
-    const matchCode = discount.code.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchName = discount.name.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchCode = discount.code?.toLowerCase().includes(searchTerm.toLowerCase()) || false
+    const matchName = discount.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false
     const matchType = filterType ? discount.discount_type === filterType : true
 
     return (matchCode || matchName) && matchType
   })
-  const totalPages = Math.ceil(filteredDiscounts.length / itemsPerPage)
-  const paginatedDiscounts = filteredDiscounts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+  const totalPages = Math.ceil(filteredDiscounts.length / pageSize)
+  const paginatedDiscounts = filteredDiscounts.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('vi-VN')
@@ -381,110 +375,9 @@ const ManageDiscountPage: React.FC = () => {
     }).format(amount)
   }
 
-  // Hàm chuyển đổi format DD/MM/YYYY HH:mm sang ISO string
-  const convertToISOString = (dateTimeString: string): string => {
-    if (!dateTimeString.trim()) return ''
-    
-    try {
-      // Format: DD/MM/YYYY HH:mm
-      const regex = /^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{1,2})$/
-      const match = dateTimeString.match(regex)
-      
-      if (!match) {
-        throw new Error('Định dạng không hợp lệ')
-      }
-      
-      const [, day, month, year, hour, minute] = match
-      const date = new Date(
-        parseInt(year),
-        parseInt(month) - 1, // Month is 0-indexed
-        parseInt(day),
-        parseInt(hour),
-        parseInt(minute)
-      )
-      
-      if (isNaN(date.getTime())) {
-        throw new Error('Ngày tháng không hợp lệ')
-      }
-      
-      return date.toISOString()
-    } catch (error) {
-      console.error('Lỗi chuyển đổi ngày tháng:', error)
-      return ''
-    }
-  }
-
-  // Hàm format input ngày tháng với placeholder
-  const formatDateTimeInput = (value: string, format: string): string => {
-    if (!value) return ''
-    
-    let result = format
-    let valueIndex = 0
-    
-    for (let i = 0; i < format.length && valueIndex < value.length; i++) {
-      if (format[i] === 'D' || format[i] === 'M' || format[i] === 'Y' || format[i] === 'H' || format[i] === 'm') {
-        result = result.substring(0, i) + value[valueIndex] + result.substring(i + 1)
-        valueIndex++
-      }
-    }
-    
-    // Chỉ giữ lại phần đã nhập
-    let lastDigitIndex = -1
-    for (let i = 0; i < result.length; i++) {
-      if (/\d/.test(result[i])) {
-        lastDigitIndex = i
-      }
-    }
-    
-    if (lastDigitIndex >= 0) {
-      return result.substring(0, lastDigitIndex + 1)
-    }
-    
-    return result
-  }
-
-  // Hàm validate format ngày tháng
-  const validateDateTimeFormat = (dateTimeString: string): boolean => {
-    if (!dateTimeString.trim()) return false
-    
-    const regex = /^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{1,2})$/
-    if (!regex.test(dateTimeString)) return false
-    
-    const match = dateTimeString.match(regex)
-    if (!match) return false
-    
-    const [, day, month, year, hour, minute] = match
-    
-    // Kiểm tra giới hạn
-    if (parseInt(day) < 1 || parseInt(day) > 31) return false
-    if (parseInt(month) < 1 || parseInt(month) > 12) return false
-    if (parseInt(year) < 2020 || parseInt(year) > 2030) return false
-    if (parseInt(hour) < 0 || parseInt(hour) > 23) return false
-    if (parseInt(minute) < 0 || parseInt(minute) > 59) return false
-    
-    // Kiểm tra ngày hợp lệ
-    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
-    return date.getDate() === parseInt(day) && 
-           date.getMonth() === parseInt(month) - 1 && 
-           date.getFullYear() === parseInt(year)
-  }
-
-  const handlePageChange = (newPage: number) => {
-    setCurrentPage(newPage)
-  }
-
-  const handleManualPageInput = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === 'Enter') {
-      const input = event.target as HTMLInputElement
-      const pageNumber = parseInt(input.value)
-      
-      if (!isNaN(pageNumber) && pageNumber >= 1 && pageNumber <= totalPages) {
-        setCurrentPage(pageNumber)
-        input.value = ''
-      } else {
-        input.value = currentPage.toString()
-      }
-    }
+  const handleOnchangePagination = (page: number, size: number) => {
+    setCurrentPage(page)
+    setPageSize(size)
   }
 
   return (
@@ -500,26 +393,6 @@ const ManageDiscountPage: React.FC = () => {
       <Typography variant='h5' fontWeight='bold' mb={3}>
         Quản lý khuyến mãi
       </Typography>
-
-      {error && (
-        <Box 
-          sx={{ 
-            mb: 2,
-            p: 2,
-            borderRadius: 1,
-            backgroundColor: '#FDE4D5',
-            border: '1px solid #EA5455',
-            color: '#EA5455',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1
-          }}
-        >
-          <Typography variant="body2" sx={{ fontWeight: 500 }}>
-            {error}
-          </Typography>
-        </Box>
-      )}
 
       <Box sx={{ display: 'flex', mb: 3, gap: 2, alignItems: 'flex-end' }}>
         <Button variant='contained' color='primary' onClick={handleAdd}>
@@ -557,7 +430,7 @@ const ManageDiscountPage: React.FC = () => {
       </Box>
 
       {loading ? (
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+        <Box display='flex' justifyContent='center' alignItems='center' minHeight='200px'>
           <CircularProgress />
         </Box>
       ) : (
@@ -638,40 +511,42 @@ const ManageDiscountPage: React.FC = () => {
                         </Tooltip>
                       </TableCell>
                       <TableCell sx={{ textAlign: 'center' }}>
-                        <Chip 
-                          label={discount.discount_type === 'PERCENTAGE' ? 'Phần trăm' : 'Số tiền cố định'} 
+                        <Chip
+                          label={discount.discount_type === 'PERCENTAGE' ? 'Phần trăm' : 'Số tiền cố định'}
                           color={discount.discount_type === 'PERCENTAGE' ? 'primary' : 'secondary'}
-                          size="small"
+                          size='small'
                         />
                       </TableCell>
                       <TableCell sx={{ textAlign: 'center' }}>
-                        {discount.discount_type === 'PERCENTAGE' 
-                          ? `${discount.discount_value}%` 
-                          : formatCurrency(discount.discount_value)
-                        }
+                        {discount.discount_type === 'PERCENTAGE'
+                          ? `${discount.discount_value}%`
+                          : formatCurrency(discount.discount_value)}
                       </TableCell>
                       <TableCell sx={{ textAlign: 'center' }}>{formatDate(discount.valid_from)}</TableCell>
                       <TableCell sx={{ textAlign: 'center' }}>{formatDate(discount.valid_until)}</TableCell>
-                      <TableCell sx={{ textAlign: 'center' }}>
-                        {formatCurrency(discount.minimum_order_value)}
-                      </TableCell>
+                      <TableCell sx={{ textAlign: 'center' }}>{formatCurrency(discount.minimum_order_value)}</TableCell>
                       <TableCell sx={{ textAlign: 'center' }}>
                         {discount.max_discount_amount ? formatCurrency(discount.max_discount_amount) : 'Không giới hạn'}
                       </TableCell>
                       <StatusCell validFrom={discount.valid_from} validUntil={discount.valid_until} />
                       <TableCell sx={{ textAlign: 'center' }}>
                         <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                          <Button variant='outlined' color='warning' size='small' onClick={() => handleEdit(discount)}>
-                            Sửa
-                          </Button>
-                          <Button
-                            variant='outlined'
+                          <IconButton
+                            color='warning'
+                            size='small'
+                            onClick={() => handleEdit(discount)}
+                            sx={{ '&:hover': { backgroundColor: 'warning.light' } }}
+                          >
+                            <Edit fontSize='small' />
+                          </IconButton>
+                          <IconButton
                             color='error'
                             size='small'
                             onClick={() => handleDelete(discount.id)}
+                            sx={{ '&:hover': { backgroundColor: 'error.light' } }}
                           >
-                            Xoá
-                          </Button>
+                            <Delete fontSize='small' />
+                          </IconButton>
                         </Box>
                       </TableCell>
                     </TableRow>
@@ -680,13 +555,15 @@ const ManageDiscountPage: React.FC = () => {
                   <TableRow>
                     <TableCell colSpan={16} sx={{ textAlign: 'center', py: 4 }}>
                       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-                        <Typography variant="body1" color="text.secondary">
-                          {searchTerm || filterType ? 'Không tìm thấy khuyến mãi nào phù hợp với bộ lọc' : 'Chưa có khuyến mãi nào trong hệ thống'}
+                        <Typography variant='body1' color='text.secondary'>
+                          {searchTerm || filterType
+                            ? 'Không tìm thấy khuyến mãi nào phù hợp với bộ lọc'
+                            : 'Chưa có khuyến mãi nào trong hệ thống'}
                         </Typography>
                         {(searchTerm || filterType) && (
-                          <Button 
-                            variant="outlined" 
-                            size="small"
+                          <Button
+                            variant='outlined'
+                            size='small'
                             onClick={() => {
                               setSearchTerm('')
                               setFilterType('')
@@ -705,64 +582,25 @@ const ManageDiscountPage: React.FC = () => {
           </TableContainer>
 
           {filteredDiscounts.length > 0 ? (
-            totalPages > 1 && (
-              <Box sx={{ mt: 4, mb: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                <Typography variant="body1" color="text.secondary" sx={{ fontSize: '1rem', fontWeight: 500 }}>
-                  Hiển thị {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, filteredDiscounts.length)} trong tổng số {filteredDiscounts.length} khuyến mãi
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                  <Button
-                    variant="outlined"
-                    disabled={currentPage === 1}
-                    onClick={() => handlePageChange(currentPage - 1)}
-                  >
-                    Trước
-                  </Button>
-                  
-                  {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNum) => (
-                    <Button
-                      key={pageNum}
-                      variant={currentPage === pageNum ? "contained" : "outlined"}
-                      onClick={() => handlePageChange(pageNum)}
-                      sx={{ minWidth: 40 }}
-                    >
-                      {pageNum}
-                    </Button>
-                  ))}
-                  
-                  <Button
-                    variant="outlined"
-                    disabled={currentPage === totalPages}
-                    onClick={() => handlePageChange(currentPage + 1)}
-                  >
-                    Sau
-                  </Button>
-                </Box>
-                
-                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                  <Typography variant="body1" color="text.secondary" sx={{ fontSize: '1rem', fontWeight: 500 }}>
-                    Chuyển đến trang:
-                  </Typography>
-                  <TextField
-                    size="small"
-                    sx={{ width: 80 }}
-                    placeholder={currentPage.toString()}
-                    onKeyDown={handleManualPageInput}
-                    InputProps={{
-                      endAdornment: <InputAdornment position="end">/ {totalPages}</InputAdornment>,
-                    }}
-                  />
-                </Box>
-              </Box>
-            )
+            <CustomPagination
+              page={currentPage}
+              totalPages={totalPages}
+              pageSize={pageSize}
+              rowLength={filteredDiscounts.length}
+              pageSizeOptions={PAGE_SIZE_OPTION}
+              onChangePagination={handleOnchangePagination}
+              isHideShowed
+            />
           ) : (
             <Box sx={{ mt: 4, mb: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-              <Typography variant="body1" color="text.secondary" sx={{ fontSize: '1rem', fontWeight: 500 }}>
-                {searchTerm || filterType ? 'Không tìm thấy khuyến mãi nào phù hợp với bộ lọc' : 'Chưa có khuyến mãi nào trong hệ thống'}
+              <Typography variant='body1' color='text.secondary' sx={{ fontSize: '1rem', fontWeight: 500 }}>
+                {searchTerm || filterType
+                  ? 'Không tìm thấy khuyến mãi nào phù hợp với bộ lọc'
+                  : 'Chưa có khuyến mãi nào trong hệ thống'}
               </Typography>
               {(searchTerm || filterType) && (
-                <Button 
-                  variant="outlined" 
+                <Button
+                  variant='outlined'
                   onClick={() => {
                     setSearchTerm('')
                     setFilterType('')
@@ -831,57 +669,47 @@ const ManageDiscountPage: React.FC = () => {
                 }
                 fullWidth
                 InputProps={{
-                  endAdornment: <InputAdornment position="end">
-                    {editDiscount.discount_type === 'PERCENTAGE' ? '%' : 'VND'}
-                  </InputAdornment>,
+                  endAdornment: (
+                    <InputAdornment position='end'>
+                      {editDiscount.discount_type === 'PERCENTAGE' ? '%' : 'VND'}
+                    </InputAdornment>
+                  )
                 }}
               />
-              <FormControl fullWidth>
-                <InputLabel>Hiệu lực từ</InputLabel>
-                <OutlinedInput
-                  value={editDiscount.valid_from}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    const value = e.target.value.replace(/[^0-9]/g, '')
-                    const formatted = formatDateTimeInput(value, 'DD/MM/YYYY HH:mm')
-                    setEditDiscount({ ...editDiscount, valid_from: formatted })
-                  }}
-                  placeholder='DD/MM/YYYY HH:mm'
-                  inputProps={{
-                    maxLength: 16,
-                    style: { fontFamily: 'monospace' }
-                  }}
-                  endAdornment={
-                    <InputAdornment position="end">
-                      <Typography variant="caption" color="text.secondary">
-                        VD: 03/08/2025 00:00
-                      </Typography>
-                    </InputAdornment>
-                  }
-                />
-              </FormControl>
-              <FormControl fullWidth>
-                <InputLabel>Hiệu lực đến</InputLabel>
-                <OutlinedInput
-                  value={editDiscount.valid_until}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    const value = e.target.value.replace(/[^0-9]/g, '')
-                    const formatted = formatDateTimeInput(value, 'DD/MM/YYYY HH:mm')
-                    setEditDiscount({ ...editDiscount, valid_until: formatted })
-                  }}
-                  placeholder='DD/MM/YYYY HH:mm'
-                  inputProps={{
-                    maxLength: 16,
-                    style: { fontFamily: 'monospace' }
-                  }}
-                  endAdornment={
-                    <InputAdornment position="end">
-                      <Typography variant="caption" color="text.secondary">
-                        VD: 04/08/2025 23:59
-                      </Typography>
-                    </InputAdornment>
-                  }
-                />
-              </FormControl>
+              <TextField
+                label='Hiệu lực từ'
+                type='datetime-local'
+                value={formatDateForInput(editDiscountDates.valid_from)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  const date = e.target.value ? new Date(e.target.value) : null
+                  setEditDiscountDates(prev => ({ ...prev, valid_from: date }))
+                }}
+                fullWidth
+                InputLabelProps={{
+                  shrink: true
+                }}
+                inputProps={{
+                  min: new Date().toISOString().slice(0, 16)
+                }}
+              />
+              <TextField
+                label='Hiệu lực đến'
+                type='datetime-local'
+                value={formatDateForInput(editDiscountDates.valid_until)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  const date = e.target.value ? new Date(e.target.value) : null
+                  setEditDiscountDates(prev => ({ ...prev, valid_until: date }))
+                }}
+                fullWidth
+                InputLabelProps={{
+                  shrink: true
+                }}
+                inputProps={{
+                  min: editDiscountDates.valid_from
+                    ? formatDateForInput(editDiscountDates.valid_from)
+                    : new Date().toISOString().slice(0, 16)
+                }}
+              />
               <TextField
                 label='Giá trị đơn hàng tối thiểu'
                 type='number'
@@ -891,7 +719,7 @@ const ManageDiscountPage: React.FC = () => {
                 }
                 fullWidth
                 InputProps={{
-                  endAdornment: <InputAdornment position="end">VND</InputAdornment>,
+                  endAdornment: <InputAdornment position='end'>VND</InputAdornment>
                 }}
               />
               <TextField
@@ -899,11 +727,14 @@ const ManageDiscountPage: React.FC = () => {
                 type='number'
                 value={editDiscount.max_discount_amount || ''}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setEditDiscount({ ...editDiscount, max_discount_amount: e.target.value ? parseInt(e.target.value) : null })
+                  setEditDiscount({
+                    ...editDiscount,
+                    max_discount_amount: e.target.value ? parseInt(e.target.value) : null
+                  })
                 }
                 fullWidth
                 InputProps={{
-                  endAdornment: <InputAdornment position="end">VND</InputAdornment>,
+                  endAdornment: <InputAdornment position='end'>VND</InputAdornment>
                 }}
               />
             </Box>
@@ -970,57 +801,47 @@ const ManageDiscountPage: React.FC = () => {
               }
               fullWidth
               InputProps={{
-                endAdornment: <InputAdornment position="end">
-                  {newDiscount.discount_type === 'PERCENTAGE' ? '%' : 'VND'}
-                </InputAdornment>,
+                endAdornment: (
+                  <InputAdornment position='end'>
+                    {newDiscount.discount_type === 'PERCENTAGE' ? '%' : 'VND'}
+                  </InputAdornment>
+                )
               }}
             />
-            <FormControl fullWidth>
-              <InputLabel>Hiệu lực từ</InputLabel>
-              <OutlinedInput
-                value={newDiscount.valid_from}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                  const value = e.target.value.replace(/[^0-9]/g, '')
-                  const formatted = formatDateTimeInput(value, 'DD/MM/YYYY HH:mm')
-                  setNewDiscount({ ...newDiscount, valid_from: formatted })
-                }}
-                placeholder='DD/MM/YYYY HH:mm'
-                inputProps={{
-                  maxLength: 16,
-                  style: { fontFamily: 'monospace' }
-                }}
-                endAdornment={
-                  <InputAdornment position="end">
-                    <Typography variant="caption" color="text.secondary">
-                      VD: 03/08/2025 00:00
-                    </Typography>
-                  </InputAdornment>
-                }
-              />
-            </FormControl>
-            <FormControl fullWidth>
-              <InputLabel>Hiệu lực đến</InputLabel>
-              <OutlinedInput
-                value={newDiscount.valid_until}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                  const value = e.target.value.replace(/[^0-9]/g, '')
-                  const formatted = formatDateTimeInput(value, 'DD/MM/YYYY HH:mm')
-                  setNewDiscount({ ...newDiscount, valid_until: formatted })
-                }}
-                placeholder='DD/MM/YYYY HH:mm'
-                inputProps={{
-                  maxLength: 16,
-                  style: { fontFamily: 'monospace' }
-                }}
-                endAdornment={
-                  <InputAdornment position="end">
-                    <Typography variant="caption" color="text.secondary">
-                      VD: 04/08/2025 23:59
-                    </Typography>
-                  </InputAdornment>
-                }
-              />
-            </FormControl>
+            <TextField
+              label='Hiệu lực từ'
+              type='datetime-local'
+              value={formatDateForInput(newDiscountDates.valid_from)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                const date = e.target.value ? new Date(e.target.value) : null
+                setNewDiscountDates(prev => ({ ...prev, valid_from: date }))
+              }}
+              fullWidth
+              InputLabelProps={{
+                shrink: true
+              }}
+              inputProps={{
+                min: new Date().toISOString().slice(0, 16)
+              }}
+            />
+            <TextField
+              label='Hiệu lực đến'
+              type='datetime-local'
+              value={formatDateForInput(newDiscountDates.valid_until)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                const date = e.target.value ? new Date(e.target.value) : null
+                setNewDiscountDates(prev => ({ ...prev, valid_until: date }))
+              }}
+              fullWidth
+              InputLabelProps={{
+                shrink: true
+              }}
+              inputProps={{
+                min: newDiscountDates.valid_from
+                  ? formatDateForInput(newDiscountDates.valid_from)
+                  : new Date().toISOString().slice(0, 16)
+              }}
+            />
             <TextField
               label='Giá trị đơn hàng tối thiểu'
               type='number'
@@ -1030,7 +851,7 @@ const ManageDiscountPage: React.FC = () => {
               }
               fullWidth
               InputProps={{
-                endAdornment: <InputAdornment position="end">VND</InputAdornment>,
+                endAdornment: <InputAdornment position='end'>VND</InputAdornment>
               }}
             />
             <TextField
@@ -1038,11 +859,14 @@ const ManageDiscountPage: React.FC = () => {
               type='number'
               value={newDiscount.max_discount_amount || ''}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setNewDiscount({ ...newDiscount, max_discount_amount: e.target.value ? parseInt(e.target.value) : null })
+                setNewDiscount({
+                  ...newDiscount,
+                  max_discount_amount: e.target.value ? parseInt(e.target.value) : null
+                })
               }
               fullWidth
               InputProps={{
-                endAdornment: <InputAdornment position="end">VND</InputAdornment>,
+                endAdornment: <InputAdornment position='end'>VND</InputAdornment>
               }}
             />
           </Box>
@@ -1051,9 +875,9 @@ const ManageDiscountPage: React.FC = () => {
           <Button onClick={() => setAddModal(false)} disabled={loading}>
             Huỷ
           </Button>
-          <Button 
-            onClick={handleSaveAdd} 
-            variant='contained' 
+          <Button
+            onClick={handleSaveAdd}
+            variant='contained'
             color='primary'
             disabled={loading}
             startIcon={loading ? <CircularProgress size={20} /> : null}
@@ -1072,9 +896,14 @@ const ManageDiscountPage: React.FC = () => {
       >
         <Box
           sx={{
-            backgroundColor: snackbar.severity === 'success' ? '#4caf50' : 
-                             snackbar.severity === 'error' ? '#f44336' :
-                             snackbar.severity === 'warning' ? '#ff9800' : '#2196f3',
+            backgroundColor:
+              snackbar.severity === 'success'
+                ? '#4caf50'
+                : snackbar.severity === 'error'
+                  ? '#f44336'
+                  : snackbar.severity === 'warning'
+                    ? '#ff9800'
+                    : '#2196f3',
             color: 'white',
             padding: 2,
             borderRadius: 1,
@@ -1084,11 +913,9 @@ const ManageDiscountPage: React.FC = () => {
             minWidth: 300
           }}
         >
-          <Typography variant="body2">
-            {snackbar.message}
-          </Typography>
+          <Typography variant='body2'>{snackbar.message}</Typography>
           <Button
-            size="small"
+            size='small'
             onClick={() => setSnackbar(prev => ({ ...prev, open: false }))}
             sx={{ color: 'white', ml: 2 }}
           >
@@ -1096,6 +923,22 @@ const ManageDiscountPage: React.FC = () => {
           </Button>
         </Box>
       </Snackbar>
+
+      {/* Confirm Delete Dialog */}
+      <Dialog open={confirmDeleteModal.open} onClose={handleCancelDelete} maxWidth='sm' fullWidth>
+        <DialogTitle>Xác nhận xóa</DialogTitle>
+        <DialogContent>
+          <Typography>Bạn có chắc chắn muốn xóa khuyến mãi này? Hành động này không thể hoàn tác.</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelDelete} color='inherit'>
+            Hủy
+          </Button>
+          <Button onClick={handleConfirmDelete} color='error' variant='contained' autoFocus>
+            Xóa
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }

@@ -18,18 +18,21 @@ export const discountService = {
   // Tạo khuyến mãi mới
   createDiscount: async (discount: NewDiscount): Promise<{ data: TDiscount }> => {
     const response = await axiosInstance.post(CONFIG_API.DISCOUNT.CREATE_DISCOUNT, discount)
+
     return response.data
   },
 
   // Cập nhật khuyến mãi
   updateDiscount: async (id: number, discount: Partial<NewDiscount>): Promise<{ data: TDiscount }> => {
     const response = await axiosInstance.put(`${CONFIG_API.DISCOUNT.INDEX}/${id}`, discount)
+
     return response.data
   },
 
   // Xóa khuyến mãi
   deleteDiscount: async (id: number): Promise<{ message: string }> => {
-    const response = await axiosInstance.delete(`${CONFIG_API.DISCOUNT.INDEX}/${id}`)
+    const response = await axiosInstance.delete(`${CONFIG_API.DISCOUNT.INDEX}/delete-discount/${id}`)
+
     return response.data
   },
 
@@ -37,6 +40,7 @@ export const discountService = {
   getDiscountByCode: async (code: string) => {
     try {
       const res = await axiosInstance.get(`${CONFIG_API.DISCOUNT.INDEX}/get-discount/${code}`)
+
       return res.data
     } catch (error) {
       return error
