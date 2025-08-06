@@ -41,9 +41,9 @@ export interface ReviewResponse {
   status: string
   statusCode: number
   message: string
-  data: TReview[]
+  data?: TReview[]
   error: any
-  meta: {
+  meta?: {
     totalItems: number
     totalPages: number
     currentPage: number

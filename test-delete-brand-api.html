@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test API Xóa Thương Hiệu</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #dc3545;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #c82333;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #dc3545;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .danger-zone {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .danger-zone h3 {
+            color: #721c24;
+            margin-top: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test API Xóa Thương Hiệu</h1>
+        
+        <div class="danger-zone">
+            <h3>⚠️ Vùng Nguy Hiểm</h3>
+            <p><strong>Lưu ý:</strong> Đây là Hard Delete - xóa thực sự khỏi database và không thể khôi phục!</p>
+            <ul>
+                <li>Chỉ admin (role = 1) mới có quyền xóa thương hiệu</li>
+                <li>Không thể xóa thương hiệu nếu có sản phẩm đang sử dụng</li>
+                <li>Hành động này không thể hoàn tác</li>
+            </ul>
+        </div>
+        
+        <div class="form-group">
+            <label for="baseUrl">Base URL:</label>
+            <input type="text" id="baseUrl" value="http://localhost:8080/api/v0" placeholder="Nhập base URL">
+        </div>
+        
+        <div class="form-group">
+            <label for="token">Bearer Token (Admin):</label>
+            <input type="password" id="token" placeholder="Nhập token admin">
+        </div>
+        
+        <div class="form-group">
+            <label for="brandId">ID Thương Hiệu:</label>
+            <input type="text" id="brandId" placeholder="Nhập ID thương hiệu cần xóa">
+        </div>
+        
+        <div class="form-group">
+            <label for="brandName">Tên Thương Hiệu (Để Xác Nhận):</label>
+            <input type="text" id="brandName" placeholder="Nhập tên thương hiệu để xác nhận">
+        </div>
+        
+        <div class="form-group">
+            <button onclick="testDeleteBrand()" id="testBtn">
+                <span id="loadingSpinner" style="display: none;" class="loading"></span>
+                Test Xóa Thương Hiệu
+            </button>
+            <button onclick="clearResult()">Xóa Kết Quả</button>
+        </div>
+        
+        <div id="result" class="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        async function testDeleteBrand() {
+            const baseUrl = document.getElementById('baseUrl').value.trim();
+            const token = document.getElementById('token').value.trim();
+            const brandId = document.getElementById('brandId').value.trim();
+            const brandName = document.getElementById('brandName').value.trim();
+            const resultDiv = document.getElementById('result');
+            const testBtn = document.getElementById('testBtn');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            
+            if (!baseUrl) {
+                showResult('❌ Lỗi: Vui lòng nhập Base URL', 'error');
+                return;
+            }
+            
+            if (!token) {
+                showResult('❌ Lỗi: Vui lòng nhập Bearer Token', 'error');
+                return;
+            }
+            
+            if (!brandId) {
+                showResult('❌ Lỗi: Vui lòng nhập ID thương hiệu', 'error');
+                return;
+            }
+            
+            if (!brandName) {
+                showResult('❌ Lỗi: Vui lòng nhập tên thương hiệu để xác nhận', 'error');
+                return;
+            }
+            
+            // Double confirmation
+            const confirmMessage = `⚠️ CẢNH BÁO: Bạn có chắc chắn muốn XÓA thương hiệu "${brandName}" (ID: ${brandId})?\n\nĐây là HARD DELETE - không thể khôi phục!\n\nNhập "DELETE" để xác nhận:`;
+            const userInput = prompt(confirmMessage);
+            
+            if (userInput !== 'DELETE') {
+                showResult('❌ Hủy bỏ: Không xác nhận xóa thương hiệu', 'warning');
+                return;
+            }
+            
+            // Disable button and show loading
+            testBtn.disabled = true;
+            loadingSpinner.style.display = 'inline-block';
+            
+            try {
+                const url = `${baseUrl}/brands/delete/${brandId}`;
+                
+                console.log('🌐 Gọi API:', url);
+                console.log('🗑️ DELETE Request - Hard Delete');
+                
+                const response = await fetch(url, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const responseData = await response.json();
+                
+                console.log('📥 Response Status:', response.status);
+                console.log('📥 Response Data:', responseData);
+                
+                let resultMessage = '';
+                let resultClass = '';
+                
+                if (response.ok) {
+                    resultMessage = `✅ Xóa thành công!\n\n📊 Thông tin response:\n- Status: ${response.status}\n- Status Text: ${response.statusText}\n\n📄 Response Data:\n${JSON.stringify(responseData, null, 2)}\n\n🗑️ Thương hiệu "${brandName}" đã được xóa vĩnh viễn khỏi database!`;
+                    resultClass = 'success';
+                } else {
+                    resultMessage = `❌ Lỗi!\n\n📊 Thông tin lỗi:\n- Status: ${response.status}\n- Status Text: ${response.statusText}\n\n📄 Error Data:\n${JSON.stringify(responseData, null, 2)}`;
+                    resultClass = 'error';
+                }
+                
+                showResult(resultMessage, resultClass);
+                
+            } catch (error) {
+                console.error('❌ Network Error:', error);
+                showResult(`❌ Lỗi kết nối:\n${error.message}`, 'error');
+            } finally {
+                // Re-enable button and hide loading
+                testBtn.disabled = false;
+                loadingSpinner.style.display = 'none';
+            }
+        }
+        
+        function showResult(message, className) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = message;
+            resultDiv.className = `result ${className}`;
+            resultDiv.style.display = 'block';
+        }
+        
+        function clearResult() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'none';
+            resultDiv.textContent = '';
+        }
+        
+        // Auto-fill with sample data for testing
+        document.getElementById('brandName').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                testDeleteBrand();
+            }
+        });
+        
+        // Show info about the API
+        showResult(`ℹ️ Thông tin API Xóa Thương Hiệu:
+
+📋 Endpoint: DELETE /api/v0/brands/delete/:id
+🔐 Yêu cầu: Bearer Token với quyền admin (role = 1)
+🗑️ Method: DELETE (Hard Delete)
+🔗 URL Parameters: :id - ID của thương hiệu cần xóa
+📝 Body: Không cần body request
+
+⚠️ ĐIỀU KIỆN VÀ CẢNH BÁO:
+- Chỉ admin (role = 1) mới có thể xóa thương hiệu
+- Thương hiệu phải tồn tại với ID được cung cấp
+- Không thể xóa thương hiệu nếu có sản phẩm nào đang sử dụng
+- Đây là HARD DELETE: Xóa thực sự khỏi database, không thể khôi phục
+
+💡 Hướng dẫn sử dụng:
+1. Nhập Base URL (mặc định: http://localhost:8080/api/v0)
+2. Nhập Bearer Token của admin
+3. Nhập ID thương hiệu cần xóa
+4. Nhập tên thương hiệu để xác nhận
+5. Click "Test Xóa Thương Hiệu"
+6. Xác nhận bằng cách nhập "DELETE"
+
+🚨 LƯU Ý QUAN TRỌNG:
+- Hành động này không thể hoàn tác
+- Hãy đảm bảo không có sản phẩm nào đang sử dụng thương hiệu này
+- Chỉ sử dụng khi thực sự cần thiết`, 'info');
+    </script>
+</body>
+</html> 

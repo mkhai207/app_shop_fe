@@ -21,4 +21,22 @@ export type TCreateBrand = {
 export type TUpdateBrand = {
   id: string
   name: string
+}
+
+export type GetBrandsResponse = {
+  success: boolean
+  message: string
+  data: TBrand[]
+}
+
+export type CreateBrandResponse = {
+  success: boolean
+  message: string
+  data: TBrand
+}
+
+export type UpdateBrandResponse = {
+  success: boolean
+  message: string
+  data: TBrand
 } 

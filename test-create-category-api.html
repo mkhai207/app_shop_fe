@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Create Category API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .form-group {
+            margin: 10px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .loading {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Create Category API</h1>
+    
+    <div class="test-section">
+        <h2>POST /api/v0/categories/create-category</h2>
+        <p><strong>Mô tả:</strong> Tạo phân loại mới</p>
+        <p><strong>Headers:</strong> Content-Type: application/json, Authorization: Bearer token</p>
+        <p><strong>Authentication:</strong> Yêu cầu quyền admin (role = 1)</p>
+        
+        <div class="form-group">
+            <label for="token">Bearer Token:</label>
+            <input type="text" id="token" placeholder="Nhập Bearer token (lấy từ localStorage.accessToken)" />
+        </div>
+        
+        <div class="form-group">
+            <label for="code">Mã phân loại:</label>
+            <input type="text" id="code" placeholder="Ví dụ: ELECTRONICS" />
+        </div>
+        
+        <div class="form-group">
+            <label for="name">Tên phân loại:</label>
+            <input type="text" id="name" placeholder="Ví dụ: Điện tử" />
+        </div>
+        
+        <button onclick="testCreateCategory()">Test API</button>
+        <button onclick="clearResult()">Xóa kết quả</button>
+        
+        <div id="result" class="result" style="display: none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Hướng dẫn lấy token:</h3>
+        <ol>
+            <li>Đăng nhập vào ứng dụng</li>
+            <li>Mở Developer Tools (F12)</li>
+            <li>Vào tab Application/Storage</li>
+            <li>Tìm localStorage > accessToken</li>
+            <li>Copy giá trị token</li>
+        </ol>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8080/api/v0';
+        
+        async function testCreateCategory() {
+            const resultDiv = document.getElementById('result');
+            const token = document.getElementById('token').value;
+            const code = document.getElementById('code').value;
+            const name = document.getElementById('name').value;
+            
+            resultDiv.style.display = 'block';
+            
+            // Validate inputs
+            if (!token) {
+                resultDiv.className = 'result warning';
+                resultDiv.textContent = '⚠️ Vui lòng nhập Bearer token!';
+                return;
+            }
+            
+            if (!code || !name) {
+                resultDiv.className = 'result warning';
+                resultDiv.textContent = '⚠️ Vui lòng nhập đầy đủ mã và tên phân loại!';
+                return;
+            }
+            
+            resultDiv.className = 'result loading';
+            resultDiv.textContent = 'Đang gọi API...';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/categories/create-category`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        code: code,
+                        name: name
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `✅ Thành công!\n\nStatus: ${response.status}\nStatus Text: ${response.statusText}\n\nResponse Data:\n${JSON.stringify(data, null, 2)}`;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ Lỗi!\n\nStatus: ${response.status}\nStatus Text: ${response.statusText}\n\nError Data:\n${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ Lỗi kết nối!\n\nError: ${error.message}\n\nKiểm tra:\n- Server có đang chạy không?\n- Token có đúng không?\n- CORS có được cấu hình không?`;
+            }
+        }
+        
+        function clearResult() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'none';
+            resultDiv.textContent = '';
+        }
+        
+        // Auto-fill token from localStorage if available
+        window.addEventListener('load', () => {
+            try {
+                const token = localStorage.getItem('accessToken');
+                if (token) {
+                    document.getElementById('token').value = token;
+                }
+            } catch (error) {
+                console.log('Không thể lấy token từ localStorage');
+            }
+        });
+    </script>
+</body>
+</html> 

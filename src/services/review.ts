@@ -7,7 +7,7 @@ export const reviewService = {
   getReviews: async (filter?: ReviewFilter): Promise<ReviewResponse> => {
     console.log('🔄 Calling API getReviews with params:', filter)
     try {
-      const response = await instanceAxios.get('/reviews/get-reviews', { params: filter })
+      const response = await instanceAxios.get(`${CONFIG_API.REVIEW.INDEX}/get-reviews`, { params: filter })
       console.log('✅ API Response:', response.data)
       return response.data
     } catch (error) {
@@ -42,9 +42,23 @@ export const reviewService = {
   },
 
   // Xóa đánh giá
-  deleteReview: async (id: number) => {
-    const response = await instanceAxios.delete(`/reviews/${id}`)
-    return response.data
+  deleteReview: async (id: string) => {
+    console.log('🔄 Calling API deleteReview with id:', id)
+    console.log('🔗 Full API URL:', `${CONFIG_API.REVIEW.INDEX}/delete-review/${id}`)
+    try {
+      const response = await instanceAxios.delete(`${CONFIG_API.REVIEW.INDEX}/delete-review/${id}`)
+      console.log('✅ Delete review successful:', response.data)
+      return response.data
+    } catch (error) {
+      console.error('❌ Delete review failed:', error)
+      console.error('❌ Error details:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      })
+      throw error
+    }
   },
 
   // Lấy đánh giá theo sản phẩm

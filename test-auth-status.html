@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Auth Status</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #1976d2;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #1565c0;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test Auth Status & Token</h1>
+        
+        <div class="form-group">
+            <label for="baseUrl">Base URL:</label>
+            <input type="text" id="baseUrl" value="http://localhost:8080/api/v0" placeholder="Nhập base URL">
+        </div>
+        
+        <div class="form-group">
+            <label for="token">Bearer Token:</label>
+            <input type="password" id="token" placeholder="Nhập token">
+        </div>
+        
+        <div class="form-group">
+            <button onclick="checkAuthStatus()">Kiểm Tra Auth Status</button>
+            <button onclick="testMeEndpoint()">Test /auth/me</button>
+            <button onclick="clearResult()">Xóa Kết Quả</button>
+        </div>
+        
+        <div id="result" class="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        async function checkAuthStatus() {
+            const baseUrl = document.getElementById('baseUrl').value.trim();
+            const token = document.getElementById('token').value.trim();
+            
+            if (!baseUrl) {
+                showResult('❌ Lỗi: Vui lòng nhập Base URL', 'error');
+                return;
+            }
+            
+            if (!token) {
+                showResult('❌ Lỗi: Vui lòng nhập Bearer Token', 'error');
+                return;
+            }
+            
+            try {
+                const url = `${baseUrl}/auth/me`;
+                
+                console.log('🌐 Gọi API:', url);
+                console.log('🔐 Token:', token.substring(0, 20) + '...');
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const responseData = await response.json();
+                
+                console.log('📥 Response Status:', response.status);
+                console.log('📥 Response Data:', responseData);
+                
+                let resultMessage = '';
+                let resultClass = '';
+                
+                if (response.ok) {
+                    resultMessage = `✅ Thành công!\n\n📊 Thông tin response:\n- Status: ${response.status}\n- Status Text: ${response.statusText}\n\n📄 User Data:\n${JSON.stringify(responseData, null, 2)}`;
+                    resultClass = 'success';
+                } else {
+                    resultMessage = `❌ Lỗi!\n\n📊 Thông tin lỗi:\n- Status: ${response.status}\n- Status Text: ${response.statusText}\n\n📄 Error Data:\n${JSON.stringify(responseData, null, 2)}`;
+                    resultClass = 'error';
+                }
+                
+                showResult(resultMessage, resultClass);
+                
+            } catch (error) {
+                console.error('❌ Network Error:', error);
+                showResult(`❌ Lỗi kết nối:\n${error.message}`, 'error');
+            }
+        }
+        
+        async function testMeEndpoint() {
+            const baseUrl = document.getElementById('baseUrl').value.trim();
+            const token = document.getElementById('token').value.trim();
+            
+            if (!baseUrl) {
+                showResult('❌ Lỗi: Vui lòng nhập Base URL', 'error');
+                return;
+            }
+            
+            if (!token) {
+                showResult('❌ Lỗi: Vui lòng nhập Bearer Token', 'error');
+                return;
+            }
+            
+            try {
+                const url = `${baseUrl}/auth/me`;
+                
+                console.log('🌐 Gọi API:', url);
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const responseData = await response.json();
+                
+                let resultMessage = '';
+                let resultClass = '';
+                
+                if (response.ok) {
+                    const userData = responseData.data || responseData;
+                    const role = userData.role || userData.role_id;
+                    
+                    resultMessage = `✅ Auth Status OK!\n\n👤 User Info:\n- ID: ${userData.id}\n- Email: ${userData.email}\n- Role: ${role}\n- Name: ${userData.name || userData.full_name}\n\n🔐 Token Status: Valid\n\n📄 Full Response:\n${JSON.stringify(responseData, null, 2)}`;
+                    
+                    if (role === 1) {
+                        resultClass = 'success';
+                        resultMessage += '\n\n✅ User có quyền admin (role = 1) - Có thể tạo thương hiệu!';
+                    } else {
+                        resultClass = 'warning';
+                        resultMessage += '\n\n⚠️ User không có quyền admin - Không thể tạo thương hiệu!';
+                    }
+                } else {
+                    resultMessage = `❌ Auth Failed!\n\n📊 Thông tin lỗi:\n- Status: ${response.status}\n- Status Text: ${response.statusText}\n\n📄 Error Data:\n${JSON.stringify(responseData, null, 2)}`;
+                    resultClass = 'error';
+                }
+                
+                showResult(resultMessage, resultClass);
+                
+            } catch (error) {
+                console.error('❌ Network Error:', error);
+                showResult(`❌ Lỗi kết nối:\n${error.message}`, 'error');
+            }
+        }
+        
+        function showResult(message, className) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = message;
+            resultDiv.className = `result ${className}`;
+            resultDiv.style.display = 'block';
+        }
+        
+        function clearResult() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'none';
+            resultDiv.textContent = '';
+        }
+        
+        // Show info about the API
+        showResult(`ℹ️ Hướng Dẫn Kiểm Tra Auth Status:
+
+🔍 Mục đích: Kiểm tra xem token có hợp lệ và user có quyền admin không
+
+📋 Endpoints:
+- GET /api/v0/auth/me - Kiểm tra thông tin user hiện tại
+
+💡 Hướng dẫn sử dụng:
+1. Nhập Base URL (mặc định: http://localhost:8080/api/v0)
+2. Nhập Bearer Token của user
+3. Click "Kiểm Tra Auth Status" hoặc "Test /auth/me"
+4. Kiểm tra role của user (cần role = 1 để tạo thương hiệu)
+
+🔐 Yêu cầu:
+- Token phải hợp lệ
+- User phải có role = 1 (admin) để tạo thương hiệu`, 'info');
+    </script>
+</body>
+</html> 

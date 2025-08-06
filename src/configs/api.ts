@@ -31,10 +31,10 @@ export const CONFIG_API = {
   },
   CATEGORY: {
     INDEX: `${BASE_URL}/categories`,
-    GET_CATEGORIES: `${BASE_URL}/categories/get-categories`
-  },
-  CATEGORY: {
-    INDEX: `${BASE_URL}/categories`
+    GET_CATEGORIES: `${BASE_URL}/categories/get-categories`,
+    CREATE_CATEGORY: `${BASE_URL}/categories/create-category`,
+    UPDATE_CATEGORY: `${BASE_URL}/categories/update`,
+    DELETE_CATEGORY: `${BASE_URL}/categories/delete`
   },
   BRAND: {
     INDEX: `${BASE_URL}/brands`
@@ -48,9 +48,9 @@ export const CONFIG_API = {
   FILE: {
     UPLOAD: `${BASE_URL}/upload`
   },
-  DISCOUNT: {
-    INDEX: `${BASE_URL}/discounts`
-  },
+  // DISCOUNT: {
+  //   INDEX: `${BASE_URL}/discounts`
+  // },
   REVIEW: {
     INDEX: `${BASE_URL}/reviews`
   },

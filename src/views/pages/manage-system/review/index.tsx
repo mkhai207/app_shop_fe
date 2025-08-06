@@ -14,15 +14,10 @@ import {
   TableRow,
   TextField,
   Tooltip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   SelectChangeEvent,
   Rating,
   Chip,
   Typography,
-  Alert,
   InputAdornment
 } from '@mui/material'
 import { NextPage } from 'next'
@@ -31,90 +26,6 @@ import { TReview } from 'src/types/review'
 
 // Types
 
-interface NewReview {
-  rating: string
-  comment: string
-  product_id: string
-  order_id: string
-  images: string
-}
-
-// Mock data
-const mockReviews: TReview[] = [
-  {
-    id: 1,
-    created_at: '2024-01-15T10:30:00Z',
-    created_by: 'user123',
-    updated_at: '2024-01-15T10:30:00Z',
-    updated_by: 'user123',
-    rating: 5,
-    comment: 'Sản phẩm rất tốt, chất lượng cao, giao hàng nhanh chóng. Rất hài lòng với dịch vụ!',
-    user_id: 1,
-    product_id: 'PROD001',
-    images: 'https://via.placeholder.com/100/4CAF50/FFFFFF?text=IMG1,https://via.placeholder.com/100/2196F3/FFFFFF?text=IMG2'
-  },
-  {
-    id: 2,
-    created_at: '2024-01-16T14:20:00Z',
-    created_by: 'user456',
-    updated_at: '2024-01-16T14:20:00Z',
-    updated_by: 'user456',
-    rating: 4,
-    comment: 'Sản phẩm đẹp, vừa vặn. Tuy nhiên màu sắc hơi khác so với hình ảnh.',
-    user_id: 2,
-    product_id: 'PROD002',
-    images: 'https://via.placeholder.com/100/FF9800/FFFFFF?text=IMG3'
-  },
-  {
-    id: 3,
-    created_at: '2024-01-17T09:15:00Z',
-    created_by: 'user789',
-    updated_at: '2024-01-17T09:15:00Z',
-    updated_by: 'user789',
-    rating: 3,
-    comment: 'Chất lượng sản phẩm tạm được, nhưng giá hơi cao so với chất lượng.',
-    user_id: 3,
-    product_id: 'PROD003',
-    images: ''
-  },
-  {
-    id: 4,
-    created_at: '2024-01-18T16:45:00Z',
-    created_by: 'user101',
-    updated_at: '2024-01-18T16:45:00Z',
-    updated_by: 'user101',
-    rating: 5,
-    comment: 'Tuyệt vời! Sản phẩm đúng như mô tả, giao hàng đúng hẹn. Sẽ mua lại!',
-    user_id: 4,
-    product_id: 'PROD001',
-    images: 'https://via.placeholder.com/100/E91E63/FFFFFF?text=IMG4,https://via.placeholder.com/100/9C27B0/FFFFFF?text=IMG5'
-  },
-  {
-    id: 5,
-    created_at: '2024-01-19T11:30:00Z',
-    created_by: 'user202',
-    updated_at: '2024-01-19T11:30:00Z',
-    updated_by: 'user202',
-    rating: 2,
-    comment: 'Sản phẩm không như mong đợi, chất lượng kém, không khuyến khích mua.',
-    user_id: 5,
-    product_id: 'PROD004',
-    images: 'https://via.placeholder.com/100/F44336/FFFFFF?text=IMG6'
-  },
-  {
-    id: 6,
-    created_at: '2024-01-20T13:20:00Z',
-    created_by: 'user303',
-    updated_at: '2024-01-20T13:20:00Z',
-    updated_by: 'user303',
-    rating: 4,
-    comment: 'Sản phẩm tốt, thiết kế đẹp. Giao hàng nhanh, nhân viên phục vụ nhiệt tình.',
-    user_id: 6,
-    product_id: 'PROD005',
-    images: 'https://via.placeholder.com/100/607D8B/FFFFFF?text=IMG7'
-  }
-]
-
 type TProps = {}
 
 const ManageReviewPage: NextPage<TProps> = () => {
@@ -122,22 +33,14 @@ const ManageReviewPage: NextPage<TProps> = () => {
   const [reviews, setReviews] = useState<TReview[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [editModal, setEditModal] = useState(false)
-  const [editReview, setEditReview] = useState<TReview | null>(null)
-  const [addModal, setAddModal] = useState(false)
-  const [newReview, setNewReview] = useState<NewReview>({
-    rating: '',
-    comment: '',
-    product_id: '',
-    order_id: '',
-    images: ''
-  })
+
   const [searchTerm, setSearchTerm] = useState('')
   const [filterRating, setFilterRating] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalItems, setTotalItems] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
-  const [addingReview, setAddingReview] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
   const itemsPerPage = 10
 
   // Reset currentPage when search or filter changes
@@ -148,40 +51,81 @@ const ManageReviewPage: NextPage<TProps> = () => {
   // Load reviews from API
   useEffect(() => {
     const loadReviews = async () => {
-      console.log('🔄 Loading reviews...')
-      console.log('📊 Current state:', { currentPage, searchTerm, filterRating, itemsPerPage })
+      console.log('🔄 Loading reviews from API...')
+      console.log('📊 Request params:', { 
+        page: currentPage, 
+        limit: itemsPerPage, 
+        search: searchTerm || 'none', 
+        rating: filterRating || 'all' 
+      })
       
       setLoading(true)
       setError('')
+      
       try {
-        const response = await reviewService.getReviews({
+        // Call API without authentication requirement
+        const queryParams: any = {
           page: currentPage,
-          limit: itemsPerPage,
-          search: searchTerm || undefined,
-          rating: filterRating ? Number(filterRating) : undefined
+          limit: itemsPerPage
+        }
+        
+        // Add optional parameters only if they have values
+        if (searchTerm && searchTerm.trim()) {
+          queryParams.search = searchTerm.trim()
+        }
+        
+        if (filterRating) {
+          queryParams.rating = Number(filterRating)
+        }
+        
+        console.log('🚀 Calling API with params:', queryParams)
+        const response = await reviewService.getReviews(queryParams)
+        
+        console.log('✅ API Response received:', {
+          status: response.status,
+          statusCode: response.statusCode,
+          message: response.message,
+          dataLength: response.data?.length || 0,
+          meta: response.meta,
+          hasData: !!response.data,
+          hasMeta: !!response.meta
         })
         
-        console.log('✅ Reviews loaded successfully:', response)
-        console.log('📋 Reviews data:', response.data)
-        console.log('📊 Meta data:', response.meta)
+        // Handle successful response
+        if (response.status === 'success' || response.statusCode === 200) {
+          const reviewData = response.data || []
+          const metaData = response.meta || { totalItems: 0, totalPages: 1, currentPage: 1 }
+          
+          setReviews(reviewData)
+          setTotalItems(metaData.totalItems || 0)
+          setTotalPages(metaData.totalPages || 1)
+          
+          console.log('🎯 Reviews state updated:', {
+            reviewsCount: reviewData.length,
+            totalItems: metaData.totalItems || 0,
+            totalPages: metaData.totalPages || 1,
+            currentPage: metaData.currentPage || currentPage
+          })
+        } else {
+          // Handle API error response
+          console.warn('⚠️ API returned error:', response.message)
+          setError(response.message || 'API returned an error')
+          setReviews([])
+          setTotalItems(0)
+          setTotalPages(0)
+        }
         
-        setReviews(response.data)
-        setTotalItems(response.meta.totalItems)
-        setTotalPages(response.meta.totalPages)
-        
-        console.log('🎯 State updated:', {
-          reviewsCount: response.data.length,
-          totalItems: response.meta.totalItems,
-          totalPages: response.meta.totalPages
-        })
       } catch (err: any) {
-        console.error('❌ Error loading reviews:', err)
-        setError(err.message || 'Failed to fetch reviews')
-        // Fallback to mock data if API fails
-        console.log('🔄 Falling back to mock data...')
-        setReviews(mockReviews)
-        setTotalItems(mockReviews.length)
-        setTotalPages(Math.ceil(mockReviews.length / itemsPerPage))
+        console.error('❌ API call failed:', {
+          message: err.message,
+          status: err.status,
+          response: err.response?.data
+        })
+        
+        setError(`Lỗi kết nối API: ${err.message || 'Unknown error'}`)
+        setReviews([])
+        setTotalItems(0)
+        setTotalPages(0)
       } finally {
         setLoading(false)
         console.log('🏁 Loading completed')
@@ -197,84 +141,69 @@ const ManageReviewPage: NextPage<TProps> = () => {
   }, [loading, reviews.length, error])
 
   // Handlers
-  const handleDelete = (id: number) => {
-    if (window.confirm('Bạn có chắc muốn xoá đánh giá này?')) {
-      setReviews(reviews.filter(r => r.id !== id))
-    }
-  }
-
-  const handleEdit = (review: TReview) => {
-    setEditReview(review)
-    setEditModal(true)
-  }
-
-  const handleSaveEdit = () => {
-    if (editReview) {
-      setReviews(
-        reviews.map(r =>
-          r.id === editReview.id ? { ...editReview, updated_at: new Date().toISOString(), updated_by: 'admin' } : r
-        )
-      )
-      setEditModal(false)
-    }
-  }
-
-  const handleAdd = () => {
-    setNewReview({ rating: '', comment: '', product_id: '', order_id: '', images: '' })
-    setAddModal(true)
-  }
-
-  const handleSaveAdd = async () => {
-    // Validation
-    if (!newReview.rating || !newReview.comment || !newReview.product_id) {
-      alert('Vui lòng điền đầy đủ thông tin bắt buộc (Đánh giá, Nội dung, Product ID)')
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Bạn có chắc muốn xoá đánh giá này?')) {
       return
     }
     
-    if (Number(newReview.rating) < 1 || Number(newReview.rating) > 5) {
-      alert('Đánh giá phải từ 1 đến 5 sao')
-      return
-    }
-    
-    setAddingReview(true)
-    
+    setDeletingId(id)
     try {
-      console.log('🔄 Adding new review:', newReview)
+      console.log('🔄 Deleting review with id:', id)
+      await reviewService.deleteReview(id)
+      console.log('✅ Review deleted successfully')
       
-      const reviewData = {
-        rating: Number(newReview.rating),
-        comment: newReview.comment,
-        product_id: newReview.product_id,
-        order_id: newReview.order_id ? Number(newReview.order_id) : undefined,
-        images: newReview.images || ''
+      // Refresh the reviews list after successful deletion
+      const queryParams: any = {
+        page: currentPage,
+        limit: itemsPerPage
       }
       
-      const response = await reviewService.createReview(reviewData)
-      console.log('✅ Review added successfully:', response)
+      if (searchTerm && searchTerm.trim()) {
+        queryParams.search = searchTerm.trim()
+      }
       
-      // Refresh the reviews list
-      const updatedResponse = await reviewService.getReviews({
-        page: currentPage,
-        limit: itemsPerPage,
-        search: searchTerm || undefined,
-        rating: filterRating ? Number(filterRating) : undefined
-      })
+      if (filterRating) {
+        queryParams.rating = Number(filterRating)
+      }
       
-      setReviews(updatedResponse.data)
-      setTotalItems(updatedResponse.meta.totalItems)
-      setTotalPages(updatedResponse.meta.totalPages)
+      const response = await reviewService.getReviews(queryParams)
       
-      setAddModal(false)
+      // Handle refresh response
+      if (response.status === 'success' || response.statusCode === 200) {
+        const reviewData = response.data || []
+        const metaData = response.meta || { totalItems: 0, totalPages: 1, currentPage: 1 }
+        
+        setReviews(reviewData)
+        setTotalItems(metaData.totalItems || 0)
+        setTotalPages(metaData.totalPages || 1)
+        
+        console.log('🔄 Reviews refreshed after delete:', {
+          remainingReviews: reviewData.length,
+          totalItems: metaData.totalItems || 0
+        })
+      }
       
       // Show success message
-      alert('Thêm đánh giá thành công!')
+      alert('Xóa đánh giá thành công!')
     } catch (error: any) {
-      console.error('❌ Failed to add review:', error)
-      alert('Lỗi khi thêm đánh giá: ' + (error.message || 'Unknown error'))
+      console.error('❌ Failed to delete review:', error)
+      
+      // Handle specific error cases
+      if (error.response?.status === 401) {
+        alert('Lỗi xác thực: Vui lòng đăng nhập lại với quyền admin')
+      } else if (error.response?.status === 403) {
+        alert('Lỗi quyền truy cập: Bạn không có quyền xóa đánh giá này')
+      } else if (error.response?.status === 404) {
+        alert('Lỗi: Không tìm thấy đánh giá cần xóa')
+      } else {
+        alert('Lỗi khi xóa đánh giá: ' + (error.message || 'Unknown error'))
+      }
     } finally {
-      setAddingReview(false)
+      setDeletingId(null)
     }
   }
+
+
 
   // Filtering and pagination
   const ratings = [1, 2, 3, 4, 5]
@@ -316,30 +245,57 @@ const ManageReviewPage: NextPage<TProps> = () => {
         Quản lý đánh giá
       </Typography>
 
-      {error && (
-        <Box 
-          sx={{ 
-            mb: 2,
-            p: 2,
-            borderRadius: 1,
-            backgroundColor: '#FDE4D5',
-            border: '1px solid #EA5455',
-            color: '#EA5455',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1
-          }}
-        >
-          <Typography variant="body2" sx={{ fontWeight: 500 }}>
-            {error}
-          </Typography>
-        </Box>
-      )}
+             {error && (
+         <Box 
+           sx={{ 
+             mb: 2,
+             p: 2,
+             borderRadius: 1,
+             backgroundColor: '#FDE4D5',
+             border: '1px solid #EA5455',
+             color: '#EA5455',
+             display: 'flex',
+             alignItems: 'center',
+             gap: 1
+           }}
+         >
+           <Typography variant="body2" sx={{ fontWeight: 500 }}>
+             {error}
+           </Typography>
+         </Box>
+       )}
+
+       {/* Debug Info */}
+       <Box 
+         sx={{ 
+           mb: 2,
+           p: 2,
+           borderRadius: 1,
+           backgroundColor: '#f5f5f5',
+           border: '1px solid #ddd',
+           fontSize: '0.85rem'
+         }}
+       >
+         <Typography variant="body2" sx={{ fontWeight: 500, mb: 1 }}>
+           Debug Info:
+         </Typography>
+         <Typography variant="body2">
+           Loading: {loading ? 'Yes' : 'No'} | 
+           Reviews Count: {reviews.length} | 
+           Total Items: {totalItems} | 
+           Total Pages: {totalPages} | 
+           Current Page: {currentPage} | 
+           Error: {error || 'None'}
+         </Typography>
+         <Typography variant="body2" sx={{ mt: 1, fontSize: '0.75rem', color: '#666' }}>
+           API Endpoint: /api/v0/reviews/get-reviews | 
+           Delete API: /api/v0/reviews/delete-review/:id | 
+           Search Term: {searchTerm || 'None'} | 
+           Filter Rating: {filterRating || 'All'}
+         </Typography>
+       </Box>
 
       <Box sx={{ display: 'flex', mb: 3, gap: 2, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-        <Button variant='contained' color='primary' onClick={handleAdd}>
-          Thêm đánh giá
-        </Button>
         <Box>
           <TextField
             size='small'
@@ -480,19 +436,15 @@ const ManageReviewPage: NextPage<TProps> = () => {
                       <TableCell sx={{ textAlign: 'center' }}>{review.order_id || review.user_id || 'N/A'}</TableCell>
                       <TableCell sx={{ textAlign: 'center' }}>{review.product_id}</TableCell>
                       <TableCell sx={{ textAlign: 'center' }}>
-                        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                          <Button variant='outlined' color='warning' size='small' onClick={() => handleEdit(review)}>
-                            Sửa
-                          </Button>
-                          <Button
-                            variant='outlined'
-                            color='error'
-                            size='small'
-                            onClick={() => handleDelete(review.id)}
-                          >
-                            Xoá
-                          </Button>
-                        </Box>
+                        <Button
+                          variant='outlined'
+                          color='error'
+                          size='small'
+                          onClick={() => handleDelete(review.id)}
+                          disabled={deletingId === review.id}
+                        >
+                          {deletingId === review.id ? 'Đang xóa...' : 'Xóa'}
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))
@@ -574,130 +526,7 @@ const ManageReviewPage: NextPage<TProps> = () => {
         </>
       )}
 
-      {/* Edit Review Dialog */}
-      <Dialog open={editModal} onClose={() => setEditModal(false)} maxWidth='md' fullWidth>
-        <DialogTitle>Sửa đánh giá</DialogTitle>
-        <DialogContent>
-          {editReview && (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span>Đánh giá:</span>
-                <Rating
-                  value={editReview.rating}
-                  onChange={(event, newValue) => {
-                    if (newValue !== null) {
-                      setEditReview({ ...editReview, rating: newValue })
-                    }
-                  }}
-                />
-              </Box>
-              <TextField
-                label='Nội dung đánh giá'
-                value={editReview.comment}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setEditReview({ ...editReview, comment: e.target.value })
-                }
-                multiline
-                rows={4}
-                fullWidth
-              />
-              <TextField
-                label='Order ID'
-                type='number'
-                value={editReview.order_id || editReview.user_id || ''}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setEditReview({ ...editReview, order_id: Number(e.target.value) })
-                }
-                fullWidth
-              />
-              <TextField
-                label='Product ID'
-                value={editReview.product_id}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setEditReview({ ...editReview, product_id: e.target.value })
-                }
-                fullWidth
-              />
-              
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEditModal(false)}>Huỷ</Button>
-          <Button onClick={handleSaveEdit} variant='contained' color='primary'>
-            Lưu
-          </Button>
-        </DialogActions>
-      </Dialog>
 
-      {/* Add Review Dialog */}
-      <Dialog open={addModal} onClose={() => setAddModal(false)} maxWidth='md' fullWidth>
-        <DialogTitle>Thêm đánh giá mới</DialogTitle>
-        <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <span>Đánh giá:</span>
-              <Rating
-                value={Number(newReview.rating)}
-                onChange={(event, newValue) => {
-                  if (newValue !== null) {
-                    setNewReview({ ...newReview, rating: newValue.toString() })
-                  }
-                }}
-              />
-            </Box>
-            <TextField
-              label='Nội dung đánh giá'
-              value={newReview.comment}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setNewReview({ ...newReview, comment: e.target.value })
-              }
-              multiline
-              rows={4}
-              fullWidth
-            />
-            <TextField
-              label='Product ID'
-              value={newReview.product_id}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setNewReview({ ...newReview, product_id: e.target.value })
-              }
-              fullWidth
-            />
-            <TextField
-              label='Order ID'
-              type='number'
-              value={newReview.order_id}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setNewReview({ ...newReview, order_id: e.target.value })
-              }
-              fullWidth
-            />
-            <TextField
-              label='Images (URLs separated by commas)'
-              value={newReview.images}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setNewReview({ ...newReview, images: e.target.value })
-              }
-              placeholder='url1,url2,url3'
-              fullWidth
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setAddModal(false)} disabled={addingReview}>
-            Huỷ
-          </Button>
-          <Button 
-            onClick={handleSaveAdd} 
-            variant='contained' 
-            color='primary'
-            disabled={addingReview}
-          >
-            {addingReview ? 'Đang lưu...' : 'Lưu'}
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   )
 }

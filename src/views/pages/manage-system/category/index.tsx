@@ -64,7 +64,7 @@ const TooltipCell = ({ value }: { value: string | number }) => (
 
 const ManageCategoryPage: React.FC = () => {
   // State declarations
-  const { fetchCategories, categories, loading, error, updateCategories } = useCategory()
+  const { fetchCategories, categories, loading, error, updateCategories, createCategory, updateCategory, deleteCategory } = useCategory()
   const [editModal, setEditModal] = useState(false)
   const [editCategory, setEditCategory] = useState<TCategory | null>(null)
   const [addModal, setAddModal] = useState(false)
@@ -90,9 +90,27 @@ const ManageCategoryPage: React.FC = () => {
   }, [fetchCategories])
 
   // Handlers
-  const handleDelete = (id: number) => {
-    if (window.confirm('Bạn có chắc muốn xoá phân loại này?')) {
-      updateCategories(categories.filter(c => c.id !== id))
+  const handleDelete = async (id: number) => {
+    // Hiển thị confirm dialog với thông tin chi tiết hơn
+    const categoryToDelete = categories.find(c => c.id === id)
+    const confirmMessage = categoryToDelete 
+      ? `Bạn có chắc chắn muốn xóa phân loại "${categoryToDelete.name}" (${categoryToDelete.code})?\n\n⚠️ Lưu ý: Đây là thao tác xóa vĩnh viễn và không thể khôi phục!`
+      : 'Bạn có chắc chắn muốn xóa phân loại này?\n\n⚠️ Lưu ý: Đây là thao tác xóa vĩnh viễn và không thể khôi phục!'
+    
+    if (window.confirm(confirmMessage)) {
+      try {
+        console.log('Deleting category with ID:', id)
+        
+        // Call API to delete category
+        await deleteCategory(id)
+        
+        // Show success message
+        alert('Xóa phân loại thành công!')
+        
+      } catch (err: any) {
+        console.error('Error deleting category:', err)
+        alert(err.message || 'Có lỗi xảy ra khi xóa phân loại')
+      }
     }
   }
 
@@ -101,14 +119,50 @@ const ManageCategoryPage: React.FC = () => {
     setEditModal(true)
   }
 
-  const handleSaveEdit = () => {
-    if (editCategory) {
-      updateCategories(
-        categories.map(c =>
-          c.id === editCategory.id ? { ...editCategory, updated_at: new Date().toISOString(), updated_by: 'admin' } : c
-        )
-      )
+  const handleSaveEdit = async () => {
+    if (!editCategory) return
+
+    try {
+      // Validate input
+      if (!editCategory.code.trim() || !editCategory.name.trim()) {
+        alert('Vui lòng nhập đầy đủ mã và tên phân loại')
+        return
+      }
+
+      // Prepare update data (only changed fields)
+      const updateData: { code?: string; name?: string } = {}
+      
+      // Find original category to compare
+      const originalCategory = categories.find(c => c.id === editCategory.id)
+      if (originalCategory) {
+        if (editCategory.code.trim() !== originalCategory.code) {
+          updateData.code = editCategory.code.trim()
+        }
+        if (editCategory.name.trim() !== originalCategory.name) {
+          updateData.name = editCategory.name.trim()
+        }
+      }
+
+      // If no changes, just close modal
+      if (Object.keys(updateData).length === 0) {
+        setEditModal(false)
+        return
+      }
+
+      console.log('Updating category with data:', updateData)
+
+      // Call API to update category
+      await updateCategory(editCategory.id, updateData)
+
+      // Close modal
       setEditModal(false)
+      
+      // Show success message
+      alert('Cập nhật phân loại thành công!')
+      
+    } catch (err: any) {
+      console.error('Error updating category:', err)
+      alert(err.message || 'Có lỗi xảy ra khi cập nhật phân loại')
     }
   }
 
@@ -117,19 +171,31 @@ const ManageCategoryPage: React.FC = () => {
     setAddModal(true)
   }
 
-  const handleSaveAdd = () => {
-    // Note: This is just for demo. In real app, you would call API to create category
-    const categoryToAdd: TCategory = {
-      id: Date.now(),
-      created_at: new Date().toISOString(),
-      created_by: 'admin',
-      updated_at: new Date().toISOString(),
-      updated_by: 'admin',
-      code: newCategory.code,
-      name: newCategory.name
+  const handleSaveAdd = async () => {
+    try {
+      // Validate input
+      if (!newCategory.code.trim() || !newCategory.name.trim()) {
+        alert('Vui lòng nhập đầy đủ mã và tên phân loại')
+        return
+      }
+
+      // Call API to create category
+      await createCategory({
+        code: newCategory.code.trim(),
+        name: newCategory.name.trim()
+      })
+
+      // Close modal and reset form
+      setAddModal(false)
+      setNewCategory({ code: '', name: '' })
+      
+      // Show success message
+      alert('Tạo phân loại thành công!')
+      
+    } catch (err: any) {
+      console.error('Error creating category:', err)
+      alert(err.message || 'Có lỗi xảy ra khi tạo phân loại')
     }
-    updateCategories([...categories, categoryToAdd])
-    setAddModal(false)
   }
 
   // Filtering and pagination

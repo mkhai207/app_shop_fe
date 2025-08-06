@@ -19,11 +19,12 @@ import {
   IconButton,
   CircularProgress,
   Alert,
-  InputAdornment
+  InputAdornment,
+  Snackbar
 } from '@mui/material'
-import { Edit, Delete, Add } from '@mui/icons-material'
+import { Edit, Delete, Add, CheckCircle, Error } from '@mui/icons-material'
 import { useBrand } from 'src/hooks/useBrand'
-import { Brand } from 'src/services/brand'
+import { TBrand } from 'src/types/brand'
 
 const cellStyle = {
   maxWidth: '140px',
@@ -42,8 +43,8 @@ const TooltipCell = ({ value }: { value: string | number }) => (
   </TableCell>
 )
 
-const emptyBrand: Brand = {
-  id: 0,
+const emptyBrand: TBrand = {
+  id: '0',
   created_at: '',
   created_by: '',
   updated_at: '',
@@ -52,14 +53,19 @@ const emptyBrand: Brand = {
 }
 
 const ManageBrandPage: React.FC = () => {
-  const { fetchBrands } = useBrand()
-  const [brands, setBrands] = useState<Brand[]>([])
+  const { fetchBrands, createNewBrand, updateExistingBrand, deleteExistingBrand } = useBrand()
+  const [brands, setBrands] = useState<TBrand[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [open, setOpen] = useState(false)
   const [editIndex, setEditIndex] = useState<number | null>(null)
-  const [form, setForm] = useState<Brand>(emptyBrand)
+  const [form, setForm] = useState<TBrand>(emptyBrand)
   const [currentPage, setCurrentPage] = useState(1)
+  const [saving, setSaving] = useState(false)
+  const [successMessage, setSuccessMessage] = useState('')
+  const [showSuccess, setShowSuccess] = useState(false)
+  const [formError, setFormError] = useState('')
+  const [deleteLoading, setDeleteLoading] = useState<string | null>(null)
   const itemsPerPage = 10 // Cố định 10 items mỗi trang
 
   // Load brands from API
@@ -84,7 +90,7 @@ const ManageBrandPage: React.FC = () => {
     const newId = brands && brands.length > 0 ? Math.max(...brands.map(b => Number(b.id))) + 1 : 1
     setForm({
       ...emptyBrand,
-      id: newId,
+      id: String(newId),
       created_at: new Date().toISOString().slice(0, 10),
       created_by: 'admin'
     })
@@ -104,37 +110,104 @@ const ManageBrandPage: React.FC = () => {
     setOpen(false)
     setForm(emptyBrand)
     setEditIndex(null)
+    setFormError('') // Clear form error when closing
   }
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
-    setForm(prev => ({
+    setForm((prev: TBrand) => ({
       ...prev,
       [name]: value
     }))
-  }
-
-  const handleSave = () => {
-    if (editIndex !== null) {
-      // Edit existing brand
-      const updatedBrands = [...(brands || [])]
-      updatedBrands[editIndex] = {
-        ...form,
-        updated_at: new Date().toISOString().slice(0, 10),
-        updated_by: 'admin'
-      }
-      setBrands(updatedBrands)
-    } else {
-      // Add new brand
-      setBrands(prev => [...(prev || []), form])
+    // Clear form error when user starts typing
+    if (formError) {
+      setFormError('')
     }
-    handleClose()
   }
 
-  const handleDelete = (index: number) => {
-    if (brands) {
-      const updatedBrands = brands.filter((_, i) => i !== index)
-      setBrands(updatedBrands)
+  const handleSave = async () => {
+    if (!form.name.trim()) {
+      setFormError('Vui lòng nhập tên thương hiệu')
+      return
+    }
+
+    setSaving(true)
+    setFormError('')
+
+    try {
+      if (editIndex !== null) {
+        // Edit existing brand using API
+        const response = await updateExistingBrand(form.id, { id: form.id, name: form.name })
+        
+        if (response.error) {
+          throw response.error.message || 'Có lỗi xảy ra khi cập nhật thương hiệu'
+        }
+
+        // Reload brands from API after successful update
+        const brandsResponse = await fetchBrands()
+        if (brandsResponse.data) {
+          setBrands(brandsResponse.data)
+        }
+        
+        // Show success message for edit
+        setSuccessMessage('Cập nhật thương hiệu thành công!')
+        setShowSuccess(true)
+        handleClose()
+      } else {
+        // Add new brand using API
+        const response = await createNewBrand({ name: form.name })
+        
+        if (response.error) {
+          throw response.error.message || 'Có lỗi xảy ra khi tạo thương hiệu'
+        }
+
+        // Reload brands from API after successful creation
+        const brandsResponse = await fetchBrands()
+        if (brandsResponse.data) {
+          setBrands(brandsResponse.data)
+        }
+        
+        // Show success message for create
+        setSuccessMessage('Thêm thương hiệu thành công!')
+        setShowSuccess(true)
+        handleClose()
+      }
+    } catch (err: any) {
+      // Don't close the form on error, just show the error message
+      setFormError(err.message || 'Có lỗi xảy ra khi lưu thương hiệu')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async (brandId: string, brandName: string) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa thương hiệu "${brandName}"? Hành động này không thể hoàn tác.`)) {
+      return
+    }
+
+    setDeleteLoading(brandId)
+
+    try {
+      const response = await deleteExistingBrand(brandId)
+      
+      if (response.error) {
+        throw response.error.message || 'Có lỗi xảy ra khi xóa thương hiệu'
+      }
+
+      // Reload brands from API after successful deletion
+      const brandsResponse = await fetchBrands()
+      if (brandsResponse.data) {
+        setBrands(brandsResponse.data)
+      }
+      
+      // Show success message for delete
+      setSuccessMessage('Xóa thương hiệu thành công!')
+      setShowSuccess(true)
+    } catch (err: any) {
+      // Show error message
+      setError(err.message || 'Có lỗi xảy ra khi xóa thương hiệu')
+    } finally {
+      setDeleteLoading(null)
     }
   }
 
@@ -164,6 +237,11 @@ const ManageBrandPage: React.FC = () => {
   // Calculate pagination
   const totalPages = Math.ceil(brands.length / itemsPerPage)
   const paginatedBrands = brands.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+
+  const handleSuccessClose = () => {
+    setShowSuccess(false)
+    setSuccessMessage('')
+  }
 
   return (
     <Box sx={{ p: 3 }}>
@@ -242,10 +320,15 @@ const ManageBrandPage: React.FC = () => {
                           </IconButton>
                           <IconButton
                             color="error"
-                            onClick={() => handleDelete(actualIndex)}
+                            onClick={() => handleDelete(brand.id, brand.name)}
                             size="small"
+                            disabled={deleteLoading === brand.id}
                           >
-                            <Delete />
+                            {deleteLoading === brand.id ? (
+                              <CircularProgress size={16} color="error" />
+                            ) : (
+                              <Delete />
+                            )}
                           </IconButton>
                         </TableCell>
                       </TableRow>
@@ -333,17 +416,38 @@ const ManageBrandPage: React.FC = () => {
             value={form.name}
             onChange={handleChange}
             sx={{ mt: 2 }}
+            error={!!formError}
+            helperText={formError}
           />
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose} color="inherit">
             Hủy
           </Button>
-          <Button onClick={handleSave} variant="contained" color="primary">
-            {editIndex !== null ? 'Cập nhật' : 'Thêm'}
+          <Button onClick={handleSave} variant="contained" color="primary" disabled={saving}>
+            {saving ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CircularProgress size={16} color="inherit" />
+                {editIndex !== null ? 'Đang cập nhật...' : 'Đang thêm...'}
+              </Box>
+            ) : (
+              editIndex !== null ? 'Cập nhật' : 'Thêm'
+            )}
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Success Snackbar */}
+      <Snackbar
+        open={showSuccess}
+        autoHideDuration={6000}
+        onClose={handleSuccessClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+      >
+        <Alert onClose={handleSuccessClose} severity="success" sx={{ width: '100%' }}>
+          {successMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   )
 }
