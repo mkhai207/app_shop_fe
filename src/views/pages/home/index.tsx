@@ -11,6 +11,8 @@ import { useAuth } from 'src/hooks/useAuth'
 import { getAllProductsPublic, getProductRecommend } from 'src/services/product'
 import { TProduct } from 'src/types/product'
 import CardProduct from '../../../components/card-product/CardProduct'
+import ChatBot from 'src/views/layouts/components/chatBot/ChatBot'
+
 
 type TProps = {}
 
@@ -269,7 +271,10 @@ const HomePage: NextPage<TProps> = () => {
           </Container>
         )}
       </Box>
+      
     </>
+    
+
   )
 }
 
