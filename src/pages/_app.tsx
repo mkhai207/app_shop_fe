@@ -39,6 +39,7 @@ import { useSettings } from 'src/hooks/useSettings'
 import ThemeComponent from 'src/theme/ThemeComponent'
 import UserLayout from 'src/views/layouts/UserLayout'
 import { AxiosInterceptor } from 'src/helpers/axios'
+import ChatBot from 'src/views/layouts/components/chatBot/ChatBot'
 
 type ExtendedAppProps = AppProps & {
   Component: NextPage
@@ -128,6 +129,7 @@ export default function App(props: ExtendedAppProps) {
                       <Guard authGuard={authGuard} guestGuard={guestGuard}>
                         <AclGuard aclAbilities={aclAbilities} guestGuard={guestGuard} authGuard={authGuard}>
                           {getLayout(<Component {...pageProps} />)}
+                          <ChatBot />
                         </AclGuard>
                       </Guard>
                     </FilterProvider>
@@ -142,5 +144,6 @@ export default function App(props: ExtendedAppProps) {
         </AxiosInterceptor>
       </AuthProvider>
     </Provider>
+    
   )
 }
