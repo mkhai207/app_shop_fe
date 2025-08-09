@@ -7,6 +7,8 @@ import { TProduct } from 'src/types/product'
 import AddToCartModal from './AddToCartModal'
 import BuyNowModal from './BuyNowModal'
 import { useState } from 'react'
+import { createUserInteraction } from 'src/services/userInteraction'
+import { useAuth } from 'src/hooks/useAuth'
 
 const StyledCard = styled(Card)(({}) => ({
   height: '100%',
@@ -26,16 +28,31 @@ interface TCardProduct {
 }
 
 const CardProduct = (props: TCardProduct) => {
-  console.log('props', props.item)
   const item = props?.item
   const { t } = useTranslation()
   const theme = useTheme()
   const router = useRouter()
+  const { user } = useAuth()
   const [addToCartModalOpen, setAddToCartModalOpen] = useState(false)
   const [buyNowModalOpen, setBuyNowModalOpen] = useState(false)
 
   const handleNavigateDetailProduct = (id: string) => {
+    if (user && user.id) {
+      handleCreateUserInteraction()
+    }
+
     router.push(`${ROUTE_CONFIG.PRODUCT}/${id}`)
+  }
+
+  const handleCreateUserInteraction = async () => {
+    const response = await createUserInteraction({
+      product_id: item?.id || '',
+      interaction_type: 1
+    })
+
+    if (response.status == 'success') {
+      console.log('User interaction created successfully:', response.data)
+    }
   }
 
   const handleAddToCart = () => {

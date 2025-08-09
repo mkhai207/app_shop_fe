@@ -24,8 +24,10 @@ import { ROUTE_CONFIG } from 'src/configs/route'
 import { useAuth } from 'src/hooks/useAuth'
 import { deleteCartItems } from 'src/services/cart'
 import { createOrder } from 'src/services/checkout'
-import { getDiscountByCode, TDiscount } from 'src/services/discount'
+import { getDiscountByCode } from 'src/services/discount'
+import { createUserInteraction } from 'src/services/userInteraction'
 import { RootState } from 'src/stores'
+import { TDiscount } from 'src/types/discount'
 import { TCreateOrder, TCreateOrderForm } from 'src/types/order'
 import * as yup from 'yup'
 
@@ -126,6 +128,8 @@ const CheckoutPage: NextPage<TProps> = () => {
       setOrderSuccess(true)
 
       if (response?.status === 'success' && response?.data) {
+        await handleCreateUserInteraction(data)
+
         setLoading(false)
         const url = response?.data?.vnpayUrl
         if (url) {
@@ -137,6 +141,48 @@ const CheckoutPage: NextPage<TProps> = () => {
     } catch (error) {
       setLoading(false)
       console.log('error', error)
+    }
+  }
+
+  const getProductIdFromVariant = (variantId: string) => {
+    const cartItem = items.find(item => item.variant.id === variantId)
+
+    return cartItem ? cartItem.variant.product.id : null
+  }
+
+  const handleCreateUserInteraction = async (data: TCreateOrder) => {
+    try {
+      if (isBuyNowMode) {
+        // Trường hợp mua trực tiếp - lấy product_id từ buyNowItems
+        for (const item of buyNowItems) {
+          const response = await createUserInteraction({
+            product_id: item.product_id,
+            interaction_type: 5
+          })
+
+          if (response.status === 'success') {
+            console.log('User interaction created successfully for product:', item.product_id)
+          }
+        }
+      } else {
+        // Trường hợp mua từ giỏ hàng - lấy product_id từ variant
+        for (const orderDetail of data.orderDetails) {
+          const productId = getProductIdFromVariant(orderDetail.product_variant_id)
+
+          if (productId) {
+            const response = await createUserInteraction({
+              product_id: productId,
+              interaction_type: 5
+            })
+
+            if (response.status === 'success') {
+              console.log('User interaction created successfully for product:', productId)
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error creating user interaction:', error)
     }
   }
 

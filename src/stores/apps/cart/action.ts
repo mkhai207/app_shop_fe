@@ -1,5 +1,6 @@
 import { createAsyncThunk } from '@reduxjs/toolkit'
-import { addToCart, getCartItems, updateCartItem, deleteCartItem, deleteCartItems } from 'src/services/cart'
+import { addToCart, deleteCartItem, deleteCartItems, getCartItems, updateCartItem } from 'src/services/cart'
+import { createUserInteraction } from 'src/services/userInteraction'
 import { TUpdateCartItem } from 'src/types/cart'
 
 export const serviceName = 'cart'
@@ -7,10 +8,14 @@ export const serviceName = 'cart'
 // ** Add to cart
 export const addToCartAsync = createAsyncThunk('cart/addToCart', async (data: any, { dispatch }) => {
   const response = await addToCart(data)
-  console.log('addToCart', response)
-
   if (response?.status === 'success' && response?.data) {
     dispatch(getCartItemsAsync())
+    dispatch(
+      createUserInteractionAsync({
+        product_id: data?.product_id || '',
+        interaction_type: 3
+      })
+    )
 
     return response
   }
@@ -88,3 +93,22 @@ export const deleteCartItemsAsync = createAsyncThunk('cart/deleteCartItem', asyn
     error: response?.response.data.error
   }
 })
+
+export const createUserInteractionAsync = createAsyncThunk(
+  'user-interaction',
+  async (data: { product_id: string; interaction_type: number }) => {
+    const response = await createUserInteraction(data)
+
+    if (response?.status === 'success') {
+      console.log('createUserInteractionAsync', response)
+
+      return response
+    }
+
+    return {
+      data: null,
+      message: response?.response.data.message,
+      error: response?.response.data.error
+    }
+  }
+)

@@ -48,9 +48,9 @@ export const CONFIG_API = {
   FILE: {
     UPLOAD: `${BASE_URL}/upload`
   },
-  // DISCOUNT: {
-  //   INDEX: `${BASE_URL}/discounts`
-  // },
+  USER_INTERACTION: {
+    INDEX: `${BASE_URL}/user-interactions`
+  },
   REVIEW: {
     INDEX: `${BASE_URL}/reviews`
   },

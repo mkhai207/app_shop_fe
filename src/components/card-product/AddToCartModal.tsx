@@ -1,29 +1,29 @@
-import React, { useState, useEffect } from 'react'
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Typography,
-  Box,
-  Grid,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  CircularProgress,
-  IconButton,
-  Tooltip,
-  TextField
-} from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
-import { TProductDetail } from 'src/types/product'
-import { getDetailsProductPublic } from 'src/services/product'
-import { addToCartAsync } from 'src/stores/apps/cart/action'
-import { AppDispatch, RootState } from 'src/stores'
+import {
+  Box,
+  Button,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControl,
+  Grid,
+  IconButton,
+  InputLabel,
+  MenuItem,
+  Select,
+  TextField,
+  Tooltip,
+  Typography
+} from '@mui/material'
+import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+import { getDetailsProductPublic } from 'src/services/product'
+import { AppDispatch, RootState } from 'src/stores'
 import { resetCart } from 'src/stores/apps/cart'
+import { addToCartAsync } from 'src/stores/apps/cart/action'
+import { TProductDetail } from 'src/types/product'
 
 interface AddToCartModalProps {
   open: boolean

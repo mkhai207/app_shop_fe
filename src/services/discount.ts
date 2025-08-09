@@ -6,12 +6,14 @@ export const discountService = {
   // Lấy danh sách tất cả khuyến mãi
   getDiscounts: async (): Promise<DiscountResponse> => {
     const response = await axiosInstance.get(CONFIG_API.DISCOUNT.GET_DISCOUNTS)
+
     return response.data
   },
 
   // Lấy thông tin một khuyến mãi theo ID
   getDiscountById: async (id: number): Promise<{ data: TDiscount }> => {
     const response = await axiosInstance.get(`${CONFIG_API.DISCOUNT.INDEX}/${id}`)
+
     return response.data
   },
 
@@ -34,16 +36,17 @@ export const discountService = {
     const response = await axiosInstance.delete(`${CONFIG_API.DISCOUNT.INDEX}/delete-discount/${id}`)
 
     return response.data
-  },
+  }
 
   // Lấy khuyến mãi theo code
-  getDiscountByCode: async (code: string) => {
-    try {
-      const res = await axiosInstance.get(`${CONFIG_API.DISCOUNT.INDEX}/get-discount/${code}`)
+}
 
-      return res.data
-    } catch (error) {
-      return error
-    }
+export const getDiscountByCode = async (code: string) => {
+  try {
+    const res = await axiosInstance.get(`${CONFIG_API.DISCOUNT.INDEX}/get-discount/${code}`)
+
+    return res.data
+  } catch (error) {
+    return error
   }
 }
