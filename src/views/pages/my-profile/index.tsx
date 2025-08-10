@@ -101,7 +101,7 @@ const MyProfilePage: NextPage<TProps> = () => {
       }
 
       const updateData: any = {
-        fullName: data.fullname,
+        fullname: data.fullname,
         email: data.email
       }
 

@@ -18,16 +18,23 @@ export const useAuth = () => {
     return await createUser(userData)
   }, [])
 
-  const updateUserProfile = useCallback(async (id: string, userData: {
-    fullname?: string
-    phone?: string
-    avatar?: string
-    birthday?: string
-    gender?: string
-    active?: boolean
-  }) => {
-    return await updateUser(id, userData)
-  }, [])
+  const updateUserProfile = useCallback(
+    async (
+      id: string,
+      userData: {
+        fullname?: string
+        phone?: string
+        avatar?: string
+        birthday?: string
+        gender?: string
+        active?: boolean
+        role_id?: number
+      }
+    ) => {
+      return await updateUser(id, userData)
+    },
+    []
+  )
 
   const deleteUserProfile = useCallback(async (id: string) => {
     return await deleteUser(id)

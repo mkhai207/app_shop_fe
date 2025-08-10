@@ -30,8 +30,10 @@ import {
 } from '@mui/material'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
+import PhotoCameraIcon from '@mui/icons-material/PhotoCamera'
 
 import { useAuth } from 'src/hooks/useAuth'
+import { useFileUpload } from 'src/hooks/useFileUpload'
 import { TUser } from 'src/types/auth'
 import CustomPagination from 'src/components/custom-pagination'
 import { PAGE_SIZE_OPTION } from 'src/configs/gridConfig'
@@ -96,6 +98,7 @@ const ActiveCell = ({ active, onClick, loading }: { active: boolean; onClick: ()
 const ManageUserPage: React.FC = () => {
   // State declarations
   const { fetchUsers, createNewUser, updateUserProfile, deleteUserProfile } = useAuth()
+  const { uploadFile, isUploading } = useFileUpload()
   const [users, setUsers] = useState<TUser[]>([])
   const [loading, setLoading] = useState(false)
   const [editModal, setEditModal] = useState(false)
@@ -109,6 +112,8 @@ const ManageUserPage: React.FC = () => {
     confirmPassword: ''
   })
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({})
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterRole, setFilterRole] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
@@ -186,8 +191,30 @@ const ManageUserPage: React.FC = () => {
     setDeleteConfirmOpen(false)
     setUserToDelete(null)
   }
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      setSelectedFile(file)
+
+      // Create preview URL
+      const reader = new FileReader()
+      reader.onload = e => {
+        setPreviewUrl(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleRemoveFile = () => {
+    setSelectedFile(null)
+    setPreviewUrl(null)
+  }
+
   const handleEdit = (user: TUser) => {
     setEditUser(user)
+    setSelectedFile(null)
+    setPreviewUrl(null)
     setEditModal(true)
   }
 
@@ -195,6 +222,19 @@ const ManageUserPage: React.FC = () => {
     if (editUser) {
       try {
         setLoading(true)
+
+        // Upload ảnh trước nếu có file được chọn
+        let avatarUrl = editUser.avatar
+        if (selectedFile) {
+          try {
+            const uploadResponse = await uploadFile(selectedFile)
+            avatarUrl = uploadResponse.data?.url || uploadResponse.data?.file_path || uploadResponse.data
+          } catch (uploadError: any) {
+            showSnackbar('Lỗi khi upload ảnh: ' + (uploadError.message || 'Unknown error'), 'error')
+
+            return
+          }
+        }
 
         // Prepare data for API
         const updateData: {
@@ -204,6 +244,7 @@ const ManageUserPage: React.FC = () => {
           birthday?: string
           gender?: string
           active?: boolean
+          role_id?: number
         } = {}
 
         // Only include fields that have been changed
@@ -213,8 +254,8 @@ const ManageUserPage: React.FC = () => {
         if (editUser.phone !== users.find(u => u.id === editUser.id)?.phone) {
           updateData.phone = editUser.phone || undefined
         }
-        if (editUser.avatar !== users.find(u => u.id === editUser.id)?.avatar) {
-          updateData.avatar = editUser.avatar || undefined
+        if (avatarUrl !== users.find(u => u.id === editUser.id)?.avatar) {
+          updateData.avatar = avatarUrl || undefined
         }
         if (editUser.birthday !== users.find(u => u.id === editUser.id)?.birthday) {
           updateData.birthday = editUser.birthday || undefined
@@ -225,6 +266,9 @@ const ManageUserPage: React.FC = () => {
         if (editUser.active !== users.find(u => u.id === editUser.id)?.active) {
           updateData.active = editUser.active
         }
+        if (editUser.role.id !== users.find(u => u.id === editUser.id)?.role.id) {
+          updateData.role_id = parseInt(editUser.role.id)
+        }
 
         // Call API to update user
         await updateUserProfile(editUser.id, updateData)
@@ -234,6 +278,8 @@ const ManageUserPage: React.FC = () => {
         showSnackbar('Cập nhật người dùng thành công')
 
         setEditModal(false)
+        setSelectedFile(null)
+        setPreviewUrl(null)
       } catch (err: any) {
         const errorMsg = err.response?.data?.message || err.message || 'Có lỗi xảy ra khi cập nhật người dùng'
         showSnackbar(errorMsg, 'error')
@@ -677,15 +723,41 @@ const ManageUserPage: React.FC = () => {
                 fullWidth
                 placeholder='Nhập số điện thoại mới'
               />
-              <TextField
-                label='Avatar URL'
-                value={editUser.avatar || ''}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setEditUser({ ...editUser, avatar: e.target.value })
-                }
-                fullWidth
-                placeholder='https://example.com/avatar.jpg'
-              />
+
+              {/* Avatar Upload Section */}
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Typography variant='subtitle2' color='text.secondary'>
+                  Ảnh đại diện
+                </Typography>
+
+                {/* Current Avatar or Preview */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Avatar
+                    src={previewUrl || editUser.avatar || undefined}
+                    alt={editUser.full_name}
+                    sx={{ width: 80, height: 80 }}
+                  >
+                    {editUser.full_name.charAt(0)}
+                  </Avatar>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Button
+                      variant='outlined'
+                      component='label'
+                      startIcon={<PhotoCameraIcon />}
+                      size='small'
+                      disabled={isUploading}
+                    >
+                      {selectedFile ? 'Thay đổi ảnh' : 'Chọn ảnh'}
+                      <input type='file' accept='image/*' hidden onChange={handleFileSelect} />
+                    </Button>
+                    {selectedFile && (
+                      <Button variant='text' color='error' size='small' onClick={handleRemoveFile}>
+                        Xóa ảnh đã chọn
+                      </Button>
+                    )}
+                  </Box>
+                </Box>
+              </Box>
               <TextField
                 label='Ngày sinh'
                 type='date'
@@ -722,13 +794,47 @@ const ManageUserPage: React.FC = () => {
                   <MenuItem value='Khác'>Khác</MenuItem>
                 </Select>
               </FormControl>
+              <FormControl fullWidth>
+                <InputLabel>Vai trò</InputLabel>
+                <Select
+                  value={editUser.role.id}
+                  onChange={(e: SelectChangeEvent) => {
+                    const selectedRoleId = e.target.value
+
+                    // Find the role object by ID
+                    const allRoles = [
+                      { id: '1', code: 'ADMIN', name: 'Admin' },
+                      { id: '2', code: 'STAFF', name: 'Staff' },
+                      { id: '3', code: 'CUSTOMER', name: 'Customer' }
+                    ]
+                    const selectedRole = allRoles.find(role => role.id === selectedRoleId)
+                    if (selectedRole) {
+                      setEditUser({ ...editUser, role: selectedRole })
+                    }
+                  }}
+                  label='Vai trò'
+                >
+                  <MenuItem value='1'>Admin</MenuItem>
+                  <MenuItem value='2'>Staff</MenuItem>
+                  <MenuItem value='3'>Customer</MenuItem>
+                </Select>
+              </FormControl>
             </Box>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setEditModal(false)}>Huỷ</Button>
-          <Button onClick={handleSaveEdit} variant='contained' color='primary' disabled={loading}>
-            {loading ? 'Đang cập nhật...' : 'Lưu'}
+          <Button
+            onClick={() => {
+              setEditModal(false)
+              setSelectedFile(null)
+              setPreviewUrl(null)
+            }}
+            disabled={loading || isUploading}
+          >
+            Huỷ
+          </Button>
+          <Button onClick={handleSaveEdit} variant='contained' color='primary' disabled={loading || isUploading}>
+            {isUploading ? 'Đang tải ảnh...' : loading ? 'Đang cập nhật...' : 'Lưu'}
           </Button>
         </DialogActions>
       </Dialog>

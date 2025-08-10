@@ -73,7 +73,7 @@ const UserDropdown = (props: TProps) => {
   }
 
   const handleNavigateAdmin = () => {
-    router.push(`/${ROUTE_CONFIG.DASHBOARD}`)
+    router.push(`/${ROUTE_CONFIG.MANAGE_PAGE}`)
   }
 
   return (
