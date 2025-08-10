@@ -54,6 +54,9 @@ export const CONFIG_API = {
   REVIEW: {
     INDEX: `${BASE_URL}/reviews`
   },
+  ADDRESS: {
+    INDEX: `${BASE_URL}/addresses`
+  },
   AI_RECOMMEND: {
     INDEX: `${AI_URL}/recommendations`,
     GET_SIMILAR_PRODUCTS: `${AI_URL}/recommendations_by_product`

@@ -11,7 +11,12 @@ import {
   TextField,
   Typography,
   Alert,
-  Chip
+  Chip,
+  FormControl,
+  InputLabel,
+  Paper,
+  ClickAwayListener,
+  Portal
 } from '@mui/material'
 import { NextPage } from 'next'
 import { useRouter } from 'next/router'
@@ -24,11 +29,14 @@ import { ROUTE_CONFIG } from 'src/configs/route'
 import { useAuth } from 'src/hooks/useAuth'
 import { deleteCartItems } from 'src/services/cart'
 import { createOrder } from 'src/services/checkout'
-import { getDiscountByCode } from 'src/services/discount'
+import { getDiscountByCode, getDiscounts } from 'src/services/discount'
 import { createUserInteraction } from 'src/services/userInteraction'
+import { getAddressesByUserId } from 'src/services/address'
+import AddressSelectionModal from 'src/components/address-selection-modal'
 import { RootState } from 'src/stores'
 import { TDiscount } from 'src/types/discount'
 import { TCreateOrder, TCreateOrderForm } from 'src/types/order'
+import { TAddress } from 'src/types/address'
 import * as yup from 'yup'
 
 type TProps = {}
@@ -57,6 +65,12 @@ const CheckoutPage: NextPage<TProps> = () => {
   const [buyNowItems, setBuyNowItems] = useState<BuyNowItem[]>([])
   const [isBuyNowMode, setIsBuyNowMode] = useState(false)
 
+  // Address states
+  const [addresses, setAddresses] = useState<TAddress[]>([])
+  const [selectedAddressId, setSelectedAddressId] = useState<string>('')
+  const [loadingAddresses, setLoadingAddresses] = useState(false)
+  const [addressModalOpen, setAddressModalOpen] = useState(false)
+
   // Discount states
   const [discountCode, setDiscountCode] = useState('')
   const [appliedDiscount, setAppliedDiscount] = useState<{
@@ -66,6 +80,36 @@ const CheckoutPage: NextPage<TProps> = () => {
   } | null>(null)
   const [discountLoading, setDiscountLoading] = useState(false)
   const [discountError, setDiscountError] = useState('')
+
+  // Voucher dropdown states
+  const [availableVouchers, setAvailableVouchers] = useState<TDiscount[]>([])
+  const [showVoucherDropdown, setShowVoucherDropdown] = useState(false)
+  const [loadingVouchers, setLoadingVouchers] = useState(false)
+  const [inputElement, setInputElement] = useState<HTMLElement | null>(null)
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 })
+
+  const schema = yup.object({
+    paymentMethod: yup.string().required(t('payment-method-required')),
+    shipping_address: yup.string().required(t('shipping-address-required')),
+    name: yup.string().required(t('full-name-required')),
+    phone: yup
+      .string()
+      .required(t('phone-number-required'))
+      .matches(/^\d{10}$/, t('phone_number_invalid'))
+  })
+
+  const defaultValues: TCreateOrderForm = {
+    paymentMethod: 'CASH',
+    shipping_address: '',
+    name: user?.fullName || '',
+    phone: ''
+  }
+
+  const { handleSubmit, control, setValue } = useForm({
+    defaultValues,
+    mode: 'onBlur',
+    resolver: yupResolver(schema)
+  })
 
   useEffect(() => {
     const buyNowData = localStorage.getItem('buyNowItems')
@@ -82,6 +126,110 @@ const CheckoutPage: NextPage<TProps> = () => {
       }
     }
   }, [])
+
+  // Load addresses
+  useEffect(() => {
+    const fetchAddresses = async () => {
+      if (user?.id) {
+        setLoadingAddresses(true)
+        try {
+          const response = await getAddressesByUserId()
+          if (response?.status === 'success' && response?.data) {
+            setAddresses(response.data)
+
+            // Auto select default address
+            const defaultAddress = response.data.find((addr: TAddress) => addr.is_default)
+            if (defaultAddress) {
+              setSelectedAddressId(defaultAddress.id)
+              setValue('name', defaultAddress.recipient_name)
+              setValue('phone', defaultAddress.phone_number)
+              setValue(
+                'shipping_address',
+                `${defaultAddress.street}, ${defaultAddress.ward}, ${defaultAddress.district}, ${defaultAddress.city}`
+              )
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching addresses:', error)
+        } finally {
+          setLoadingAddresses(false)
+        }
+      }
+    }
+
+    fetchAddresses()
+  }, [user?.id, setValue])
+
+  // Load available vouchers
+  useEffect(() => {
+    const fetchVouchers = async () => {
+      setLoadingVouchers(true)
+      try {
+        const response = await getDiscounts()
+        if (response?.status === 'success' && response?.data) {
+          // Filter valid vouchers (not expired and minimum order value check will be done on selection)
+          const validVouchers = response.data.filter((voucher: TDiscount) => {
+            const now = new Date()
+            const validUntil = new Date(voucher.valid_until)
+
+            return now <= validUntil
+          })
+          setAvailableVouchers(validVouchers)
+        }
+      } catch (error) {
+        console.error('Error fetching vouchers:', error)
+      } finally {
+        setLoadingVouchers(false)
+      }
+    }
+
+    fetchVouchers()
+  }, [])
+
+  useEffect(() => {
+    const updatePosition = () => {
+      if (inputElement && showVoucherDropdown) {
+        const rect = inputElement.getBoundingClientRect()
+        setDropdownPosition({
+          top: rect.bottom + window.scrollY + 4,
+          left: rect.left + window.scrollX,
+          width: rect.width
+        })
+      }
+    }
+
+    if (showVoucherDropdown) {
+      window.addEventListener('scroll', updatePosition, true)
+      window.addEventListener('resize', updatePosition)
+    }
+
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true)
+      window.removeEventListener('resize', updatePosition)
+    }
+  }, [inputElement, showVoucherDropdown])
+
+  // Handle address selection
+  const handleAddressSelect = (addressId: string) => {
+    if (addressId === '') {
+      // Clear form when selecting "Nhập địa chỉ mới"
+      setValue('name', user?.fullName || '')
+      setValue('phone', '')
+      setValue('shipping_address', '')
+    } else {
+      const selectedAddress = addresses.find(addr => addr.id === addressId)
+      if (selectedAddress) {
+        // Update form values
+        setValue('name', selectedAddress.recipient_name)
+        setValue('phone', selectedAddress.phone_number)
+        setValue(
+          'shipping_address',
+          `${selectedAddress.street}, ${selectedAddress.ward}, ${selectedAddress.district}, ${selectedAddress.city}`
+        )
+      }
+    }
+    setSelectedAddressId(addressId)
+  }
 
   // Tính toán order total dựa trên mode
   const getOrderTotal = () => {
@@ -110,16 +258,6 @@ const CheckoutPage: NextPage<TProps> = () => {
 
   const discountAmount = getDiscountAmount()
   const finalTotal = orderTotal + shippingFee - discountAmount
-
-  const schema = yup.object({
-    paymentMethod: yup.string().required(t('payment-method-required')),
-    shipping_address: yup.string().required(t('shipping-address-required')),
-    name: yup.string().required(t('full-name-required')),
-    phone: yup
-      .string()
-      .required(t('phone-number-required'))
-      .matches(/^\d{10}$/, t('phone_number_invalid'))
-  })
 
   const handleCreateOrder = async (data: TCreateOrder) => {
     try {
@@ -185,19 +323,6 @@ const CheckoutPage: NextPage<TProps> = () => {
       console.error('Error creating user interaction:', error)
     }
   }
-
-  const defaultValues: TCreateOrderForm = {
-    paymentMethod: 'CASH',
-    shipping_address: '',
-    name: user?.fullName || '',
-    phone: ''
-  }
-
-  const { handleSubmit, control } = useForm({
-    defaultValues,
-    mode: 'onBlur',
-    resolver: yupResolver(schema)
-  })
 
   // Handle discount code application
   const handleApplyDiscount = async () => {
@@ -268,6 +393,58 @@ const CheckoutPage: NextPage<TProps> = () => {
   const handleRemoveDiscount = () => {
     setAppliedDiscount(null)
     setDiscountError('')
+  }
+
+  // Handle voucher selection
+  const handleVoucherSelect = (voucher: TDiscount) => {
+    setDiscountCode(voucher.code)
+    setShowVoucherDropdown(false)
+    setDiscountError('')
+  }
+
+  // Handle discount input focus to show voucher dropdown
+  const handleDiscountInputFocus = (event: React.FocusEvent<HTMLInputElement>) => {
+    const inputEl = event.currentTarget
+    const rect = inputEl.getBoundingClientRect()
+
+    setInputElement(inputEl)
+    setDropdownPosition({
+      top: rect.bottom + window.scrollY + 4,
+      left: rect.left + window.scrollX,
+      width: rect.width
+    })
+    setShowVoucherDropdown(true)
+  }
+
+  // Handle discount input blur to hide voucher dropdown (with delay for selection)
+  const handleDiscountInputBlur = () => {
+    setTimeout(() => setShowVoucherDropdown(false), 200)
+  }
+
+  // Handle click away from dropdown
+  const handleClickAway = () => {
+    setShowVoucherDropdown(false)
+  }
+
+  // Handle address selection from modal
+  const handleAddressSelectionFromModal = (address: TAddress) => {
+    setSelectedAddressId(address.id)
+    setValue('name', address.recipient_name)
+    setValue('phone', address.phone_number)
+    setValue('shipping_address', `${address.street}, ${address.ward}, ${address.district}, ${address.city}`)
+    setAddressModalOpen(false)
+  }
+
+  // Handle refresh addresses from modal
+  const handleRefreshAddresses = async () => {
+    try {
+      const response = await getAddressesByUserId()
+      if (response?.status === 'success' && response?.data) {
+        setAddresses(response.data)
+      }
+    } catch (error) {
+      console.error('Error refreshing addresses:', error)
+    }
   }
 
   const onSubmit = (data: TCreateOrderForm) => {
@@ -353,6 +530,47 @@ const CheckoutPage: NextPage<TProps> = () => {
             </Typography>
             <form onSubmit={handleSubmit(onSubmit)}>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {/* Address Selection Button */}
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                  <Button
+                    variant="outlined"
+                    onClick={() => setAddressModalOpen(true)}
+                    fullWidth
+                  >
+                    {selectedAddressId ? 'Thay đổi địa chỉ giao hàng' : 'Chọn địa chỉ giao hàng'}
+                  </Button>
+                </Box>
+
+                {/* Address Selection Dropdown */}
+                {addresses.length > 0 && (
+                  <FormControl fullWidth>
+                    <InputLabel>Chọn địa chỉ đã lưu</InputLabel>
+                    <Select
+                      value={selectedAddressId}
+                      label='Chọn địa chỉ đã lưu'
+                      onChange={e => handleAddressSelect(e.target.value)}
+                      disabled={loadingAddresses}
+                    >
+                      <MenuItem value=''>
+                        <em>Nhập địa chỉ mới</em>
+                      </MenuItem>
+                      {addresses.map(address => (
+                        <MenuItem key={address.id} value={address.id}>
+                          <Box>
+                            <Typography variant='subtitle2'>
+                              {address.recipient_name} - {address.phone_number}
+                            </Typography>
+                            <Typography variant='body2' color='text.secondary'>
+                              {`${address.street}, ${address.ward}, ${address.district}, ${address.city}`}
+                              {address.is_default && <Chip size='small' label='Mặc định' sx={{ ml: 1 }} />}
+                            </Typography>
+                          </Box>
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                )}
+
                 <Controller
                   name='name'
                   control={control}
@@ -503,26 +721,99 @@ const CheckoutPage: NextPage<TProps> = () => {
                     />
                   </Box>
                 ) : (
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <TextField
-                      label='Mã giảm giá'
-                      value={discountCode}
-                      onChange={e => setDiscountCode(e.target.value)}
-                      error={!!discountError}
-                      helperText={discountError}
-                      fullWidth
-                      size='small'
-                      disabled={discountLoading}
-                    />
-                    <Button
-                      variant='contained'
-                      onClick={handleApplyDiscount}
-                      disabled={discountLoading || !discountCode.trim()}
-                      sx={{ minWidth: 'auto', px: 2 }}
-                    >
-                      {discountLoading ? 'Đang áp dụng...' : 'Áp dụng'}
-                    </Button>
-                  </Box>
+                  <ClickAwayListener onClickAway={handleClickAway}>
+                    <Box sx={{ position: 'relative' }}>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <TextField
+                          label='Mã giảm giá'
+                          value={discountCode}
+                          onChange={e => setDiscountCode(e.target.value)}
+                          onFocus={handleDiscountInputFocus}
+                          onBlur={handleDiscountInputBlur}
+                          error={!!discountError}
+                          helperText={discountError}
+                          fullWidth
+                          size='small'
+                          disabled={discountLoading}
+                          placeholder='Nhập mã hoặc chọn từ danh sách'
+                        />
+                        <Button
+                          variant='contained'
+                          onClick={handleApplyDiscount}
+                          disabled={discountLoading || !discountCode.trim()}
+                          sx={{ minWidth: 'auto', px: 2 }}
+                        >
+                          {discountLoading ? 'Đang áp dụng...' : 'Áp dụng'}
+                        </Button>
+                      </Box>
+
+                      {/* Voucher Dropdown */}
+                      <Portal>
+                        {showVoucherDropdown && availableVouchers.length > 0 && (
+                          <Paper
+                            sx={{
+                              position: 'fixed',
+                              top: dropdownPosition.top,
+                              left: dropdownPosition.left,
+                              width: Math.max(dropdownPosition.width, 400),
+                              zIndex: 1300, // Higher than MUI's default modal zIndex
+                              maxHeight: 300,
+                              overflow: 'auto',
+                              border: '1px solid',
+                              borderColor: 'divider',
+                              boxShadow: 3
+                            }}
+                          >
+                            {loadingVouchers ? (
+                              <Box sx={{ p: 2, textAlign: 'center' }}>
+                                <Typography variant='body2'>Đang tải voucher...</Typography>
+                              </Box>
+                            ) : (
+                              <>
+                                <Box sx={{ p: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
+                                  <Typography variant='subtitle2' color='primary'>
+                                    Danh sách Voucher
+                                  </Typography>
+                                </Box>
+                                {availableVouchers.map(voucher => (
+                                  <Box
+                                    key={voucher.id}
+                                    onClick={() => handleVoucherSelect(voucher)}
+                                    sx={{
+                                      p: 2,
+                                      cursor: 'pointer',
+                                      borderBottom: '1px solid',
+                                      borderColor: 'divider',
+                                      '&:hover': {
+                                        bgcolor: 'grey.100'
+                                      },
+                                      '&:last-child': {
+                                        borderBottom: 'none'
+                                      }
+                                    }}
+                                  >
+                                    <Typography variant='subtitle2' color='primary'>
+                                      {voucher.code}
+                                    </Typography>
+                                    <Typography variant='body2' color='text.secondary'>
+                                      {voucher.name || 'Mã giảm giá'}
+                                    </Typography>
+                                    <Typography variant='caption' color='text.secondary'>
+                                      {voucher.discount_type === 'PERCENTAGE'
+                                        ? `Giảm ${voucher.discount_value}%`
+                                        : `Giảm ${parseInt(voucher.discount_value).toLocaleString()}VNĐ`}
+                                      {voucher.minimum_order_value > 0 &&
+                                        ` - Đơn tối thiểu ${voucher.minimum_order_value.toLocaleString()}VNĐ`}
+                                    </Typography>
+                                  </Box>
+                                ))}
+                              </>
+                            )}
+                          </Paper>
+                        )}
+                      </Portal>
+                    </Box>
+                  </ClickAwayListener>
                 )}
               </Box>
 
@@ -558,6 +849,15 @@ const CheckoutPage: NextPage<TProps> = () => {
             </Card>
           </Grid>
         </Grid>
+
+        {/* Address Selection Modal */}
+        <AddressSelectionModal
+          open={addressModalOpen}
+          onClose={() => setAddressModalOpen(false)}
+          onSelectAddress={handleAddressSelectionFromModal}
+          currentAddresses={addresses}
+          onRefreshAddresses={handleRefreshAddresses}
+        />
       </Container>
     </>
   )

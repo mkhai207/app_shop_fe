@@ -1,4 +1,9 @@
-import { ExitToApp as ExitToAppIcon, ListAlt as ListAltIcon, Person as PersonIcon } from '@mui/icons-material'
+import {
+  ExitToApp as ExitToAppIcon,
+  ListAlt as ListAltIcon,
+  Person as PersonIcon,
+  LocationOn as LocationIcon
+} from '@mui/icons-material'
 import { Box, List, ListItem, ListItemIcon, ListItemText, Paper } from '@mui/material'
 import { NextPage } from 'next'
 import { useRouter } from 'next/router'
@@ -13,6 +18,12 @@ const MENU_ITEMS = [
     label: 'Thông tin',
     icon: <PersonIcon />,
     path: '/my-profile'
+  },
+  {
+    id: 'addresses',
+    label: 'Địa chỉ',
+    icon: <LocationIcon />,
+    path: '/address'
   },
   {
     id: 'orders',

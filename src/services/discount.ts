@@ -1,6 +1,7 @@
 import { axiosInstance } from 'src/helpers/axios'
 import { CONFIG_API } from 'src/configs/api'
 import { TDiscount, DiscountResponse, NewDiscount } from 'src/types/discount'
+import axios from 'axios'
 
 export const discountService = {
   // Lấy danh sách tất cả khuyến mãi
@@ -44,6 +45,16 @@ export const discountService = {
 export const getDiscountByCode = async (code: string) => {
   try {
     const res = await axiosInstance.get(`${CONFIG_API.DISCOUNT.INDEX}/get-discount/${code}`)
+
+    return res.data
+  } catch (error) {
+    return error
+  }
+}
+
+export const getDiscounts = async () => {
+  try {
+    const res = await axios.get(`${CONFIG_API.DISCOUNT.INDEX}/get-discounts`)
 
     return res.data
   } catch (error) {
