@@ -6,12 +6,21 @@ export type LoginParams = {
   rememberMe?: boolean
 }
 
+export type Permission = {
+  id: number
+  name: string
+  api_path: string
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
+  module: string
+}
+
 export type UserDataType = {
   id: number
   role: {
     name: string
     code: string
   }
+  permissions: Permission[]
   email: string
   fullName: string
   username: string

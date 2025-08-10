@@ -11,6 +11,14 @@ export type TRegisterAuth = {
   confirmPassword: string
 }
 
+export type TPermission = {
+  id: number
+  name: string
+  api_path: string
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
+  module: string
+}
+
 export type TUserRole = {
   id: string
   code: string
@@ -31,6 +39,7 @@ export type TUser = {
   gender: string | null
   phone: string
   role: TUserRole
+  permissions?: TPermission[]
 }
 
 export type TGetUsersResponse = {

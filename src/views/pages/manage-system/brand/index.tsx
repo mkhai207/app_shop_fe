@@ -26,6 +26,7 @@ import CustomPagination from 'src/components/custom-pagination'
 import { PAGE_SIZE_OPTION } from 'src/configs/gridConfig'
 import { useBrand } from 'src/hooks/useBrand'
 import { TBrand } from 'src/types/brand'
+import PermissionGuard from 'src/components/auth/PermissionGuard'
 
 const cellStyle = {
   maxWidth: '140px',
@@ -298,9 +299,11 @@ const ManageBrandPage: React.FC = () => {
       </Box>
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-        <Button variant='contained' startIcon={<Add />} onClick={handleOpenAdd} sx={{ backgroundColor: '#1976d2' }}>
-          Thêm thương hiệu
-        </Button>
+        <PermissionGuard apiPath='/api/v0/brands/create-brand' method='POST'>
+          <Button variant='contained' startIcon={<Add />} onClick={handleOpenAdd} sx={{ backgroundColor: '#1976d2' }}>
+            Thêm thương hiệu
+          </Button>
+        </PermissionGuard>
         <TextField
           size='small'
           placeholder='Tìm kiếm theo tên thương hiệu...'
@@ -343,17 +346,21 @@ const ManageBrandPage: React.FC = () => {
                         <TooltipCell value={formatDate(brand.updated_at)} />
                         <TooltipCell value={brand.updated_by} />
                         <TableCell sx={{ textAlign: 'center' }}>
-                          <IconButton color='primary' onClick={() => handleOpenEdit(actualIndex)} size='small'>
-                            <Edit />
-                          </IconButton>
-                          <IconButton
-                            color='error'
-                            onClick={() => handleDelete(brand.id, brand.name)}
-                            size='small'
-                            disabled={deleteLoading === brand.id}
-                          >
-                            {deleteLoading === brand.id ? <CircularProgress size={16} color='error' /> : <Delete />}
-                          </IconButton>
+                          <PermissionGuard apiPath='/api/v0/brands/update' method='PUT'>
+                            <IconButton color='primary' onClick={() => handleOpenEdit(actualIndex)} size='small'>
+                              <Edit />
+                            </IconButton>
+                          </PermissionGuard>
+                          <PermissionGuard apiPath='/api/v0/brands/delete' method='DELETE'>
+                            <IconButton
+                              color='error'
+                              onClick={() => handleDelete(brand.id, brand.name)}
+                              size='small'
+                              disabled={deleteLoading === brand.id}
+                            >
+                              {deleteLoading === brand.id ? <CircularProgress size={16} color='error' /> : <Delete />}
+                            </IconButton>
+                          </PermissionGuard>
                         </TableCell>
                       </TableRow>
                     )

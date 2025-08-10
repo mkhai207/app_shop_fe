@@ -33,6 +33,7 @@ import { useDiscount } from 'src/hooks/useDiscount'
 import { TDiscount, NewDiscount } from 'src/types/discount'
 import CustomPagination from 'src/components/custom-pagination'
 import { PAGE_SIZE_OPTION } from 'src/configs/gridConfig'
+import PermissionGuard from 'src/components/auth/PermissionGuard'
 
 const cellStyle = {
   maxWidth: 150,
@@ -211,6 +212,7 @@ const ManageDiscountPage: React.FC = () => {
     const day = date.getDate().toString().padStart(2, '0')
     const hours = date.getHours().toString().padStart(2, '0')
     const minutes = date.getMinutes().toString().padStart(2, '0')
+
     return `${year}-${month}-${day}T${hours}:${minutes}`
   }
 
@@ -395,9 +397,11 @@ const ManageDiscountPage: React.FC = () => {
       </Typography>
 
       <Box sx={{ display: 'flex', mb: 3, gap: 2, alignItems: 'flex-end' }}>
-        <Button variant='contained' color='primary' onClick={handleAdd}>
-          Thêm khuyến mãi
-        </Button>
+        <PermissionGuard apiPath='/api/v0/discounts/create-discount' method='POST'>
+          <Button variant='contained' color='primary' onClick={handleAdd}>
+            Thêm khuyến mãi
+          </Button>
+        </PermissionGuard>
         <Box>
           <TextField
             size='small'
@@ -531,22 +535,26 @@ const ManageDiscountPage: React.FC = () => {
                       <StatusCell validFrom={discount.valid_from} validUntil={discount.valid_until} />
                       <TableCell sx={{ textAlign: 'center' }}>
                         <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                          <IconButton
-                            color='warning'
-                            size='small'
-                            onClick={() => handleEdit(discount)}
-                            sx={{ '&:hover': { backgroundColor: 'warning.light' } }}
-                          >
-                            <Edit fontSize='small' />
-                          </IconButton>
-                          <IconButton
-                            color='error'
-                            size='small'
-                            onClick={() => handleDelete(discount.id)}
-                            sx={{ '&:hover': { backgroundColor: 'error.light' } }}
-                          >
-                            <Delete fontSize='small' />
-                          </IconButton>
+                          <PermissionGuard apiPath='/api/v0/discounts/update-discount' method='PUT'>
+                            <IconButton
+                              color='warning'
+                              size='small'
+                              onClick={() => handleEdit(discount)}
+                              sx={{ '&:hover': { backgroundColor: 'warning.light' } }}
+                            >
+                              <Edit fontSize='small' />
+                            </IconButton>
+                          </PermissionGuard>
+                          <PermissionGuard apiPath='/api/v0/discounts/delete-discount' method='DELETE'>
+                            <IconButton
+                              color='error'
+                              size='small'
+                              onClick={() => handleDelete(discount.id)}
+                              sx={{ '&:hover': { backgroundColor: 'error.light' } }}
+                            >
+                              <Delete fontSize='small' />
+                            </IconButton>
+                          </PermissionGuard>
                         </Box>
                       </TableCell>
                     </TableRow>

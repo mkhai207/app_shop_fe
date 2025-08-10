@@ -35,6 +35,7 @@ import { useAuth } from 'src/hooks/useAuth'
 import { TUser } from 'src/types/auth'
 import CustomPagination from 'src/components/custom-pagination'
 import { PAGE_SIZE_OPTION } from 'src/configs/gridConfig'
+import PermissionGuard from 'src/components/auth/PermissionGuard'
 
 // Kiểu dữ liệu TypeScript cho người dùng
 interface NewUser {
@@ -247,6 +248,7 @@ const ManageUserPage: React.FC = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!email) return 'Email là bắt buộc'
     if (!emailRegex.test(email)) return 'Email không đúng định dạng'
+
     return undefined
   }
 
@@ -254,24 +256,28 @@ const ManageUserPage: React.FC = () => {
     const phoneRegex = /^[0-9]{10,11}$/
     if (!phone) return 'Số điện thoại là bắt buộc'
     if (!phoneRegex.test(phone)) return 'Số điện thoại phải có 10-11 chữ số'
+
     return undefined
   }
 
   const validatePassword = (password: string): string | undefined => {
     if (!password) return 'Mật khẩu là bắt buộc'
     if (password.length < 6) return 'Mật khẩu phải có ít nhất 6 ký tự'
+
     return undefined
   }
 
   const validateConfirmPassword = (password: string, confirmPassword: string): string | undefined => {
     if (!confirmPassword) return 'Xác nhận mật khẩu là bắt buộc'
     if (password !== confirmPassword) return 'Mật khẩu xác nhận không khớp'
+
     return undefined
   }
 
   const validateFullName = (fullName: string): string | undefined => {
     if (!fullName.trim()) return 'Họ tên là bắt buộc'
     if (fullName.trim().length < 6) return 'Họ tên phải có ít nhất 6 ký tự'
+
     return undefined
   }
 
@@ -304,6 +310,7 @@ const ManageUserPage: React.FC = () => {
         [field]: error
       }
       console.log('New validation errors:', newErrors)
+
       return newErrors
     })
 
@@ -343,7 +350,7 @@ const ManageUserPage: React.FC = () => {
     setNewUser({ fullName: '', email: '', phone: '', password: '', confirmPassword: '' })
     setValidationErrors({})
     setAddModal(true)
-    // Force re-render after modal opens
+
     setTimeout(() => {
       console.log('Modal opened, validation errors reset')
     }, 100)
@@ -462,9 +469,11 @@ const ManageUserPage: React.FC = () => {
       </Typography>
 
       <Box sx={{ display: 'flex', mb: 3, gap: 2, alignItems: 'flex-end' }}>
-        <Button variant='contained' color='primary' onClick={handleAdd}>
-          Thêm người dùng
-        </Button>
+        <PermissionGuard apiPath='/api/v0/auth/register' method='POST'>
+          <Button variant='contained' color='primary' onClick={handleAdd}>
+            Thêm người dùng
+          </Button>
+        </PermissionGuard>
         <Box>
           <TextField
             size='small'
@@ -593,27 +602,31 @@ const ManageUserPage: React.FC = () => {
                       </TableCell>
                       <TableCell sx={{ textAlign: 'center' }}>
                         <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                          <Tooltip title='Sửa'>
-                            <IconButton
-                              color='warning'
-                              size='small'
-                              onClick={() => handleEdit(user)}
-                              sx={{ '&:hover': { backgroundColor: 'rgba(237, 108, 2, 0.1)' } }}
-                            >
-                              <EditIcon fontSize='small' />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title='Vô hiệu hóa'>
-                            <IconButton
-                              color='error'
-                              size='small'
-                              onClick={() => handleDeleteClick(user.id)}
-                              disabled={loading}
-                              sx={{ '&:hover': { backgroundColor: 'rgba(211, 47, 47, 0.1)' } }}
-                            >
-                              <DeleteIcon fontSize='small' />
-                            </IconButton>
-                          </Tooltip>
+                          <PermissionGuard apiPath='/api/users' method='PUT'>
+                            <Tooltip title='Sửa'>
+                              <IconButton
+                                color='warning'
+                                size='small'
+                                onClick={() => handleEdit(user)}
+                                sx={{ '&:hover': { backgroundColor: 'rgba(237, 108, 2, 0.1)' } }}
+                              >
+                                <EditIcon fontSize='small' />
+                              </IconButton>
+                            </Tooltip>
+                          </PermissionGuard>
+                          <PermissionGuard apiPath='/api/users' method='DELETE'>
+                            <Tooltip title='Vô hiệu hóa'>
+                              <IconButton
+                                color='error'
+                                size='small'
+                                onClick={() => handleDeleteClick(user.id)}
+                                disabled={loading}
+                                sx={{ '&:hover': { backgroundColor: 'rgba(211, 47, 47, 0.1)' } }}
+                              >
+                                <DeleteIcon fontSize='small' />
+                              </IconButton>
+                            </Tooltip>
+                          </PermissionGuard>
                         </Box>
                       </TableCell>
                     </TableRow>
@@ -693,11 +706,12 @@ const ManageUserPage: React.FC = () => {
                     if (editUser.gender === 'MALE') return 'Nam'
                     if (editUser.gender === 'FEMALE') return 'Nữ'
                     if (editUser.gender === 'OTHER') return 'Khác'
+
                     return ''
                   })()}
                   onChange={(e: SelectChangeEvent) => {
                     const gender = e.target.value
-                    // Map Vietnamese gender to API format
+
                     const apiGender = gender === 'Nam' ? 'MALE' : gender === 'Nữ' ? 'FEMALE' : 'OTHER'
                     setEditUser({ ...editUser, gender: apiGender })
                   }}
@@ -730,7 +744,7 @@ const ManageUserPage: React.FC = () => {
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                 const value = e.target.value
                 setNewUser({ ...newUser, fullName: value })
-                // Trigger validation immediately
+
                 setTimeout(() => validateField('fullName', value), 0)
               }}
               onBlur={e => validateField('fullName', e.target.value)}
@@ -781,7 +795,7 @@ const ManageUserPage: React.FC = () => {
                 const value = e.target.value
                 setNewUser({ ...newUser, password: value })
                 validateField('password', value)
-                // Re-validate confirm password when password changes
+
                 if (newUser.confirmPassword) {
                   validateField('confirmPassword', newUser.confirmPassword)
                 }

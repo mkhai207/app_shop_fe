@@ -1,9 +1,9 @@
+import { ExitToApp as ExitToAppIcon, ListAlt as ListAltIcon, Person as PersonIcon } from '@mui/icons-material'
+import { Box, List, ListItem, ListItemIcon, ListItemText, Paper } from '@mui/material'
+import { NextPage } from 'next'
+import { useRouter } from 'next/router'
 import * as React from 'react'
 import { useState } from 'react'
-import { useRouter } from 'next/router'
-import { Box, List, ListItem, ListItemIcon, ListItemText, Avatar, Typography, Paper } from '@mui/material'
-import { NextPage } from 'next'
-import { Person as PersonIcon, ListAlt as ListAltIcon, ExitToApp as ExitToAppIcon } from '@mui/icons-material'
 
 const SIDEBAR_WIDTH = 280
 
@@ -83,7 +83,7 @@ const AccountLayout: NextPage<TProps> = ({ children }) => {
           }}
         >
           {/* User Info Section */}
-          <Box sx={{ p: 3, borderBottom: '1px solid #f0f0f0' }}>
+          {/* <Box sx={{ p: 3, borderBottom: '1px solid #f0f0f0' }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <Avatar
                 sx={{
@@ -106,7 +106,7 @@ const AccountLayout: NextPage<TProps> = ({ children }) => {
                 </Typography>
               </Box>
             </Box>
-          </Box>
+          </Box> */}
 
           {/* Menu Items */}
           <List sx={{ py: 1 }}>

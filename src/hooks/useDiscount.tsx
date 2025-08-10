@@ -13,6 +13,7 @@ export const useDiscount = () => {
     try {
       const response = await discountService.getDiscounts()
       setDiscounts(response.data)
+
       return response
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || err.message || 'Không thể tải danh sách khuyến mãi'
@@ -29,6 +30,7 @@ export const useDiscount = () => {
     try {
       const response = await discountService.createDiscount(discount)
       setDiscounts(prev => [...prev, response.data])
+
       return response.data
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || err.message || 'Không thể tạo khuyến mãi'

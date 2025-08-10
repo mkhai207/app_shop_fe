@@ -99,11 +99,10 @@ const HorizontalLayout: NextPage<TProps> = ({ open, toggleDrawer, isHideMenu }) 
             </Typography>
           </Box>
         </Box>
-        {user?.role?.code === 'CUSTOMER' && (
-          <Box>
-            <NavItem />
-          </Box>
-        )}
+
+        <Box>
+          <NavItem />
+        </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <InputSearch value='' onChange={handleSearch} expandable={true} />

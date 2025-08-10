@@ -163,7 +163,7 @@ const UserDropdown = (props: TProps) => {
           </Box>
         </Box>
         <Divider />
-        {user?.role?.code === 'ADMIN' && (
+        {(user?.role?.code === 'ADMIN' || user?.role?.code === 'STAFF') && (
           <MenuItem onClick={handleNavigateAdmin}>
             <Avatar>
               <IconifyIcon icon='clarity:administrator-line' />

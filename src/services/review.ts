@@ -1,6 +1,7 @@
 import instanceAxios from 'src/helpers/axios'
 import { TReview, NewReview, ReviewFilter, ReviewResponse } from 'src/types/review'
 import { CONFIG_API } from 'src/configs/api'
+import axios from 'axios'
 
 export const reviewService = {
   // Lấy danh sách đánh giá
@@ -95,7 +96,7 @@ export const getReviewsByProductId = async (productId: string) => {
 
 export const fetchReviewsByProductId = async (query: any) => {
   try {
-    const res = await instanceAxios.get(`${CONFIG_API.REVIEW.INDEX}/get-reviews`, query)
+    const res = await axios.get(`${CONFIG_API.REVIEW.INDEX}/get-reviews`, query)
 
     return res.data
   } catch (error) {

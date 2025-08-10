@@ -26,7 +26,7 @@ export const discountService = {
 
   // Cập nhật khuyến mãi
   updateDiscount: async (id: number, discount: Partial<NewDiscount>): Promise<{ data: TDiscount }> => {
-    const response = await axiosInstance.put(`${CONFIG_API.DISCOUNT.INDEX}/${id}`, discount)
+    const response = await axiosInstance.put(`${CONFIG_API.DISCOUNT.INDEX}/update-discount/${id}`, discount)
 
     return response.data
   },

@@ -27,6 +27,7 @@ import CustomPagination from 'src/components/custom-pagination'
 import { PAGE_SIZE_OPTION } from 'src/configs/gridConfig'
 import { reviewService } from 'src/services/review'
 import { TReview } from 'src/types/review'
+import PermissionGuard from 'src/components/auth/PermissionGuard'
 
 // Types
 
@@ -430,15 +431,17 @@ const ManageReviewPage: NextPage<TProps> = () => {
                       <TableCell sx={{ textAlign: 'center' }}>{review.order_id || review.user_id || 'N/A'}</TableCell>
                       <TableCell sx={{ textAlign: 'center' }}>{review.product_id}</TableCell>
                       <TableCell sx={{ textAlign: 'center' }}>
-                        <Button
-                          variant='outlined'
-                          color='error'
-                          size='small'
-                          onClick={() => handleDelete(review.id)}
-                          disabled={deletingId === review.id}
-                        >
-                          {deletingId === review.id ? 'Đang xóa...' : 'Xóa'}
-                        </Button>
+                        <PermissionGuard apiPath='/api/v0/reviews/delete-review' method='DELETE'>
+                          <Button
+                            variant='outlined'
+                            color='error'
+                            size='small'
+                            onClick={() => handleDelete(review.id)}
+                            disabled={deletingId === review.id}
+                          >
+                            {deletingId === review.id ? 'Đang xóa...' : 'Xóa'}
+                          </Button>
+                        </PermissionGuard>
                       </TableCell>
                     </TableRow>
                   ))

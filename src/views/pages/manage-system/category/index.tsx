@@ -34,6 +34,7 @@ import { PAGE_SIZE_OPTION } from 'src/configs/gridConfig'
 
 import { useCategory } from 'src/hooks/useCategory'
 import { TCategory } from 'src/types/category'
+import PermissionGuard from 'src/components/auth/PermissionGuard'
 
 // Kiểu dữ liệu TypeScript cho phân loại mới
 interface NewCategory {
@@ -255,9 +256,11 @@ const ManageCategoryPage: React.FC = () => {
       </Typography>
 
       <Box sx={{ display: 'flex', mb: 3, gap: 2, alignItems: 'flex-end' }}>
-        <Button variant='contained' color='primary' onClick={handleAdd} startIcon={<Add />}>
-          Thêm phân loại
-        </Button>
+        <PermissionGuard apiPath='/api/v0/categories/create-category' method='POST'>
+          <Button variant='contained' color='primary' onClick={handleAdd} startIcon={<Add />}>
+            Thêm phân loại
+          </Button>
+        </PermissionGuard>
         <Box>
           <TextField
             size='small'
@@ -340,17 +343,25 @@ const ManageCategoryPage: React.FC = () => {
                       </TableCell>
                       <TableCell sx={{ textAlign: 'center' }}>
                         <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                          <IconButton color='primary' onClick={() => handleEdit(category)} size='small'>
-                            <Edit />
-                          </IconButton>
-                          <IconButton
-                            color='error'
-                            onClick={() => handleDelete(category.id)}
-                            size='small'
-                            disabled={deleteLoading === category.id}
-                          >
-                            {deleteLoading === category.id ? <CircularProgress size={16} color='error' /> : <Delete />}
-                          </IconButton>
+                          <PermissionGuard apiPath='/api/v0/categories/update' method='PUT'>
+                            <IconButton color='primary' onClick={() => handleEdit(category)} size='small'>
+                              <Edit />
+                            </IconButton>
+                          </PermissionGuard>
+                          <PermissionGuard apiPath='/api/v0/categories/delete' method='DELETE'>
+                            <IconButton
+                              color='error'
+                              onClick={() => handleDelete(category.id)}
+                              size='small'
+                              disabled={deleteLoading === category.id}
+                            >
+                              {deleteLoading === category.id ? (
+                                <CircularProgress size={16} color='error' />
+                              ) : (
+                                <Delete />
+                              )}
+                            </IconButton>
+                          </PermissionGuard>
                         </Box>
                       </TableCell>
                     </TableRow>
