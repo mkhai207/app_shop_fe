@@ -17,7 +17,7 @@ import {
 } from '@mui/material'
 import { NextPage } from 'next'
 import { useRouter } from 'next/router'
-import { SyntheticEvent, useEffect, useState } from 'react'
+import { SyntheticEvent, useCallback, useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
@@ -112,11 +112,19 @@ const DetailProductPage: NextPage<TProps> = () => {
     setSelectedSize('') // Reset size khi đổi color
   }
 
-  const fetchGetDetailProductPublic = async () => {
+  const fetchGetDetailProductPublic = useCallback(async () => {
+    const productId = router?.query?.productId as string
+
+    if (!productId) {
+      console.log('Product ID not available yet')
+
+      return
+    }
+
     try {
       setLoading(true)
 
-      const response = await getDetailsProductPublic(router?.query?.productId as string)
+      const response = await getDetailsProductPublic(productId)
 
       if (response.status === 'success') {
         setProductDetail(response?.data)
@@ -131,7 +139,7 @@ const DetailProductPage: NextPage<TProps> = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [router?.query?.productId])
 
   const handleQuantityChange = (change: number) => {
     const maxStock = getSelectedSizeStock()
@@ -247,8 +255,10 @@ const DetailProductPage: NextPage<TProps> = () => {
   }
 
   useEffect(() => {
-    fetchGetDetailProductPublic()
-  }, [])
+    if (router.isReady) {
+      fetchGetDetailProductPublic()
+    }
+  }, [router.isReady, fetchGetDetailProductPublic])
 
   useEffect(() => {
     if (message) {
