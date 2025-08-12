@@ -32,7 +32,6 @@ import { createOrder } from 'src/services/checkout'
 import { getDiscountByCode, getDiscounts } from 'src/services/discount'
 import { createUserInteraction } from 'src/services/userInteraction'
 import { getAddressesByUserId } from 'src/services/address'
-import AddressSelectionModal from 'src/components/address-selection-modal'
 import { RootState } from 'src/stores'
 import { TDiscount } from 'src/types/discount'
 import { TCreateOrder, TCreateOrderForm } from 'src/types/order'
@@ -69,7 +68,6 @@ const CheckoutPage: NextPage<TProps> = () => {
   const [addresses, setAddresses] = useState<TAddress[]>([])
   const [selectedAddressId, setSelectedAddressId] = useState<string>('')
   const [loadingAddresses, setLoadingAddresses] = useState(false)
-  const [addressModalOpen, setAddressModalOpen] = useState(false)
 
   // Discount states
   const [discountCode, setDiscountCode] = useState('')
@@ -426,27 +424,6 @@ const CheckoutPage: NextPage<TProps> = () => {
     setShowVoucherDropdown(false)
   }
 
-  // Handle address selection from modal
-  const handleAddressSelectionFromModal = (address: TAddress) => {
-    setSelectedAddressId(address.id)
-    setValue('name', address.recipient_name)
-    setValue('phone', address.phone_number)
-    setValue('shipping_address', `${address.street}, ${address.ward}, ${address.district}, ${address.city}`)
-    setAddressModalOpen(false)
-  }
-
-  // Handle refresh addresses from modal
-  const handleRefreshAddresses = async () => {
-    try {
-      const response = await getAddressesByUserId()
-      if (response?.status === 'success' && response?.data) {
-        setAddresses(response.data)
-      }
-    } catch (error) {
-      console.error('Error refreshing addresses:', error)
-    }
-  }
-
   const onSubmit = (data: TCreateOrderForm) => {
     let orderDetails = []
 
@@ -530,17 +507,6 @@ const CheckoutPage: NextPage<TProps> = () => {
             </Typography>
             <form onSubmit={handleSubmit(onSubmit)}>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {/* Address Selection Button */}
-                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                  <Button
-                    variant="outlined"
-                    onClick={() => setAddressModalOpen(true)}
-                    fullWidth
-                  >
-                    {selectedAddressId ? 'Thay đổi địa chỉ giao hàng' : 'Chọn địa chỉ giao hàng'}
-                  </Button>
-                </Box>
-
                 {/* Address Selection Dropdown */}
                 {addresses.length > 0 && (
                   <FormControl fullWidth>
@@ -849,15 +815,6 @@ const CheckoutPage: NextPage<TProps> = () => {
             </Card>
           </Grid>
         </Grid>
-
-        {/* Address Selection Modal */}
-        <AddressSelectionModal
-          open={addressModalOpen}
-          onClose={() => setAddressModalOpen(false)}
-          onSelectAddress={handleAddressSelectionFromModal}
-          currentAddresses={addresses}
-          onRefreshAddresses={handleRefreshAddresses}
-        />
       </Container>
     </>
   )

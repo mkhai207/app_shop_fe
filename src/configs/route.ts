@@ -1,5 +1,5 @@
 export const ROUTE_CONFIG = {
-  MANAGE_PAGE: '/manage-system/product',
+  MANAGE_PAGE: '/manage-system/dashboard',
   HOME: '/',
   MY_PROFILE: '/my-profile',
   LOGIN: '/login',

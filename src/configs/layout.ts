@@ -11,6 +11,11 @@ export const VerticalItems: MenuItem[] = [
     icon: 'icon-park-outline:system',
     children: [
       {
+        title: 'Thống kê',
+        icon: 'material-symbols:analytics',
+        path: '/manage-system/dashboard'
+      },
+      {
         title: 'Người dùng',
         icon: 'mdi:user',
         path: '/manage-system/user'
