@@ -1,3 +1,4 @@
+import { yupResolver } from '@hookform/resolvers/yup'
 import {
   Box,
   Button,
@@ -10,21 +11,25 @@ import {
   Typography,
   useTheme
 } from '@mui/material'
+import axios from 'axios'
 import { NextPage } from 'next'
-import Link from 'next/link'
-import CustomTextField from 'src/components/text-field'
-import { Controller, useForm } from 'react-hook-form'
-import * as yup from 'yup'
-import { yupResolver } from '@hookform/resolvers/yup'
-import { EMAIL_REG } from 'src/configs/regex'
-import { useState } from 'react'
-import IconifyIcon from 'src/components/Icon'
 import Image from 'next/image'
-import LoginLight from '/public/images/login-light.png'
-import LoginDark from '/public/images/login-dark.png'
-import { useAuth } from 'src/hooks/useAuth'
+import Link from 'next/link'
+import { useRouter } from 'next/router'
+import { useState } from 'react'
+import { Controller, useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import { useTranslation } from 'react-i18next'
+import GoogleLoginButton from 'src/components/auth/GoogleLoginButton'
+import IconifyIcon from 'src/components/Icon'
+import CustomTextField from 'src/components/text-field'
+import { CONFIG_API } from 'src/configs/api'
+import { EMAIL_REG } from 'src/configs/regex'
+import { setLocalUserData } from 'src/helpers/storage'
+import { useAuth } from 'src/hooks/useAuth'
+import * as yup from 'yup'
+import LoginDark from '/public/images/login-dark.png'
+import LoginLight from '/public/images/login-light.png'
 
 type TProps = {}
 
@@ -37,7 +42,8 @@ const LoginPage: NextPage<TProps> = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [isRemember, setIsRemember] = useState(true)
 
-  const { login } = useAuth()
+  const { login, setUser } = useAuth()
+  const router = useRouter()
 
   const theme = useTheme()
   const { t } = useTranslation()
@@ -209,6 +215,46 @@ const LoginPage: NextPage<TProps> = () => {
             <Button type='submit' fullWidth variant='contained' color='primary' sx={{ mt: 3, mb: 2 }}>
               Sign In
             </Button>
+
+            {/* Google Login Button */}
+            <GoogleLoginButton
+              onSuccess={async response => {
+                try {
+                  const apiResponse = await axios.post(`${CONFIG_API.AUTH.INDEX}/google`, {
+                    credential: response.credential,
+                    userInfo: response.userInfo
+                  })
+
+                  if (apiResponse.data.status === 'success') {
+                    const userData = apiResponse.data.data
+                    const accessToken = apiResponse.data.accessToken
+                    const refreshToken = apiResponse.data.refreshToken
+
+                    setLocalUserData(JSON.stringify(userData), accessToken, refreshToken)
+                    setUser(userData)
+
+                    toast.success('Đăng nhập Google thành công!')
+
+                    // Redirect
+                    const returnUrl = router.query.returnUrl
+                    const redirectURL = returnUrl && returnUrl !== '/' ? returnUrl : '/'
+                    router.replace(redirectURL as string)
+                  } else {
+                    console.log('Status not success:', apiResponse.data.status)
+                    toast.error('Đăng nhập thất bại - Server response không hợp lệ!')
+                  }
+                } catch (error: any) {
+                  console.error('API call failed:', error)
+                  console.error('Error response:', error.response?.data)
+                  toast.error('Đăng nhập thất bại!')
+                }
+              }}
+              onError={error => {
+                console.error('Google login error:', error)
+                toast.error('Đăng nhập Google thất bại!')
+              }}
+            />
+
             <Grid container>
               <Grid item xs>
                 {t('dont-have-an-account')}
